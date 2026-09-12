@@ -3,25 +3,23 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Minecraft Skin Studio — 2D & 3D Editor</title>
-  <!-- Three.js & SkinView3D Libraries -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <title>Skin Studio</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/0.156.0/three.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/skinview3d@3.2.0/bundles/skinview3d.bundle.js"></script>
   <style>
     :root {
-      --bg-dark: #090d16;
-      --bg-panel: #161f30;
-      --bg-surface: #222f46;
-      --bg-input: #0b111c;
-      --accent-green: #10b981;
-      --accent-green-hover: #059669;
-      --accent-blue: #38bdf8;
-      --accent-purple: #a855f7;
-      --text-main: #f8fafc;
-      --text-muted: #94a3b8;
-      --border-color: #2b3952;
-      --danger: #ef4444;
-      --radius: 8px;
+      --bg-canvas: #0c0d10;
+      --bg-panel: #13151a;
+      --bg-elevated: #1a1d24;
+      --bg-input: #0e1014;
+      --border-subtle: #21252f;
+      --border-strong: #2e3340;
+      --accent: #2563eb;
+      --accent-hover: #1d4ed8;
+      --text-main: #f1f3f7;
+      --text-muted: #7e8696;
+      --danger: #dc2626;
+      --radius: 4px;
     }
 
     * {
@@ -33,8 +31,9 @@
     }
 
     body {
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-      background-color: var(--bg-dark);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      font-size: 12px;
+      background-color: var(--bg-canvas);
       color: var(--text-main);
       display: flex;
       flex-direction: column;
@@ -42,11 +41,11 @@
       overflow: hidden;
     }
 
-    /* Top Bar */
     header {
       background: var(--bg-panel);
-      border-bottom: 1px solid var(--border-color);
-      padding: 8px 16px;
+      border-bottom: 1px solid var(--border-subtle);
+      height: 40px;
+      padding: 0 12px;
       display: flex;
       align-items: center;
       justify-content: space-between;
@@ -55,195 +54,171 @@
     }
 
     .brand {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      font-weight: 700;
-      font-size: 1.05rem;
-      color: #fff;
-    }
-
-    .brand-icon {
-      width: 28px;
-      height: 28px;
-      background: linear-gradient(135deg, #10b981, #059669);
-      border-radius: 4px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      box-shadow: 0 0 10px rgba(16, 185, 129, 0.4);
+      font-weight: 600;
+      font-size: 0.85rem;
+      letter-spacing: 0.02em;
+      white-space: nowrap;
     }
 
     .search-group {
       display: flex;
       align-items: center;
       background: var(--bg-input);
-      border: 1px solid var(--border-color);
+      border: 1px solid var(--border-subtle);
       border-radius: var(--radius);
-      padding: 2px 4px;
-      max-width: 360px;
+      max-width: 280px;
       width: 100%;
+      height: 26px;
     }
 
     .search-group input {
       background: transparent;
       border: none;
       color: #fff;
-      padding: 6px 10px;
-      font-size: 0.82rem;
+      padding: 0 8px;
+      font-size: 0.75rem;
       outline: none;
       width: 100%;
       user-select: text;
     }
 
     .search-group button {
-      background: var(--accent-green);
+      background: var(--bg-elevated);
       border: none;
-      color: #fff;
-      padding: 6px 12px;
-      border-radius: 6px;
+      border-left: 1px solid var(--border-subtle);
+      color: var(--text-muted);
+      height: 100%;
+      padding: 0 10px;
       cursor: pointer;
-      font-weight: 600;
-      font-size: 0.78rem;
-      white-space: nowrap;
+      font-size: 0.72rem;
+      font-weight: 500;
     }
 
     .search-group button:hover {
-      background: var(--accent-green-hover);
+      background: var(--border-strong);
+      color: #fff;
     }
 
     .top-actions {
       display: flex;
       align-items: center;
-      gap: 8px;
+      gap: 6px;
     }
 
     .btn {
-      background: var(--bg-surface);
+      background: var(--bg-elevated);
       color: var(--text-main);
-      border: 1px solid var(--border-color);
-      padding: 6px 12px;
+      border: 1px solid var(--border-subtle);
+      height: 26px;
+      padding: 0 10px;
       border-radius: var(--radius);
       cursor: pointer;
-      font-size: 0.8rem;
+      font-size: 0.72rem;
       font-weight: 500;
       display: inline-flex;
       align-items: center;
+      justify-content: center;
       gap: 6px;
       text-decoration: none;
-      transition: all 0.15s;
+      transition: background 0.1s, border-color 0.1s;
+      white-space: nowrap;
     }
 
     .btn:hover {
-      background: #334361;
-      border-color: #485c80;
+      background: #252a35;
+      border-color: var(--border-strong);
+    }
+
+    .btn:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
     }
 
     .btn-primary {
-      background: var(--accent-green);
-      border-color: var(--accent-green);
+      background: var(--accent);
+      border-color: var(--accent);
       color: #fff;
     }
 
     .btn-primary:hover {
-      background: var(--accent-green-hover);
+      background: var(--accent-hover);
+      border-color: var(--accent-hover);
     }
 
-    .btn-pose-ext {
-      background: linear-gradient(135deg, #a855f7, #6366f1);
-      border: 1px solid #c084fc;
-      color: #fff;
-      font-weight: 600;
-      box-shadow: 0 0 12px rgba(168, 85, 247, 0.35);
-    }
-
-    .btn-pose-ext:hover {
-      background: linear-gradient(135deg, #9333ea, #4f46e5);
-    }
-
-    /* Studio Workspace */
     .workspace {
       display: flex;
       flex: 1;
-      height: calc(100vh - 54px);
+      height: calc(100vh - 40px);
       overflow: hidden;
     }
 
     .sidebar-left {
-      width: 260px;
+      width: 220px;
       background: var(--bg-panel);
-      border-right: 1px solid var(--border-color);
+      border-right: 1px solid var(--border-subtle);
       display: flex;
       flex-direction: column;
       overflow-y: auto;
-      padding: 14px;
-      gap: 14px;
+      padding: 10px;
+      gap: 12px;
     }
 
     .panel-box {
-      background: #111827;
-      border: 1px solid var(--border-color);
+      background: var(--bg-canvas);
+      border: 1px solid var(--border-subtle);
       border-radius: var(--radius);
-      padding: 12px;
+      padding: 8px;
     }
 
     .panel-title {
-      font-size: 0.72rem;
+      font-size: 0.65rem;
       text-transform: uppercase;
-      letter-spacing: 0.06em;
+      letter-spacing: 0.05em;
       color: var(--text-muted);
-      margin-bottom: 8px;
-      font-weight: 700;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
+      margin-bottom: 6px;
+      font-weight: 600;
     }
 
     .tools-grid {
       display: grid;
       grid-template-columns: repeat(3, 1fr);
-      gap: 6px;
+      gap: 4px;
     }
 
     .tool-btn {
-      background: var(--bg-surface);
-      border: 1px solid transparent;
-      color: var(--text-main);
-      padding: 8px 4px;
-      border-radius: 6px;
+      background: var(--bg-elevated);
+      border: 1px solid var(--border-subtle);
+      color: var(--text-muted);
+      height: 28px;
+      border-radius: var(--radius);
       cursor: pointer;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 4px;
       font-size: 0.7rem;
       font-weight: 500;
-      transition: all 0.15s;
     }
 
     .tool-btn:hover {
-      background: #334361;
+      background: #232731;
+      color: #fff;
     }
 
     .tool-btn.active {
-      background: rgba(16, 185, 129, 0.2);
-      border-color: var(--accent-green);
-      color: var(--accent-green);
+      background: #1e283d;
+      border-color: var(--accent);
+      color: #fff;
     }
 
     .color-preview-row {
       display: flex;
       align-items: center;
-      gap: 10px;
+      gap: 8px;
       margin-bottom: 8px;
     }
 
     .color-swatch-large {
-      width: 42px;
-      height: 42px;
-      border-radius: 6px;
-      border: 2px solid #fff;
-      cursor: pointer;
+      width: 32px;
+      height: 32px;
+      border-radius: var(--radius);
+      border: 1px solid var(--border-strong);
       position: relative;
     }
 
@@ -255,64 +230,72 @@
       cursor: pointer;
     }
 
-    .color-inputs {
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-      gap: 4px;
-    }
-
     .color-hex {
       background: var(--bg-input);
-      border: 1px solid var(--border-color);
+      border: 1px solid var(--border-subtle);
       color: #fff;
-      padding: 4px 8px;
-      border-radius: 4px;
+      padding: 4px 6px;
+      border-radius: var(--radius);
       font-family: monospace;
-      font-size: 0.8rem;
+      font-size: 0.75rem;
       outline: none;
+      width: 100%;
       user-select: text;
     }
 
     .palette-grid {
       display: grid;
       grid-template-columns: repeat(7, 1fr);
-      gap: 4px;
-      margin-top: 6px;
+      gap: 3px;
     }
 
     .palette-chip {
       width: 100%;
       aspect-ratio: 1;
-      border-radius: 4px;
+      border-radius: 2px;
       cursor: pointer;
-      border: 1px solid rgba(255,255,255,0.1);
-      transition: transform 0.1s;
+      border: 1px solid rgba(255,255,255,0.08);
     }
 
-    .palette-chip:hover {
-      transform: scale(1.15);
-      border-color: #fff;
+    .popular-tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px;
+    }
+
+    .tag-btn {
+      background: var(--bg-elevated);
+      border: 1px solid var(--border-subtle);
+      color: var(--text-muted);
+      padding: 3px 6px;
+      border-radius: var(--radius);
+      font-size: 0.68rem;
+      cursor: pointer;
+    }
+
+    .tag-btn:hover {
+      color: #fff;
+      border-color: var(--border-strong);
     }
 
     .editor-center {
       flex: 1;
       display: flex;
       flex-direction: column;
-      background: #090d16;
+      background: #090a0d;
       position: relative;
       overflow: hidden;
     }
 
     .editor-toolbar {
       background: var(--bg-panel);
-      border-bottom: 1px solid var(--border-color);
-      padding: 6px 14px;
+      border-bottom: 1px solid var(--border-subtle);
+      height: 32px;
+      padding: 0 10px;
       display: flex;
       align-items: center;
       justify-content: space-between;
-      gap: 12px;
-      font-size: 0.8rem;
+      gap: 8px;
     }
 
     .toolbar-group {
@@ -328,22 +311,21 @@
       align-items: center;
       justify-content: center;
       position: relative;
-      background: radial-gradient(circle, #172338 10%, #090d16 90%);
+      background: #0d0f14;
       padding: 20px;
     }
 
     .canvas-stack {
       position: relative;
-      box-shadow: 0 10px 40px rgba(0,0,0,0.8);
-      border: 2px solid #334361;
+      border: 1px solid var(--border-strong);
       background-image: 
-        linear-gradient(45deg, #182232 25%, transparent 25%), 
-        linear-gradient(-45deg, #182232 25%, transparent 25%), 
-        linear-gradient(45deg, transparent 75%, #182232 75%), 
-        linear-gradient(-45deg, transparent 75%, #182232 75%);
+        linear-gradient(45deg, #13161c 25%, transparent 25%), 
+        linear-gradient(-45deg, #13161c 25%, transparent 25%), 
+        linear-gradient(45deg, transparent 75%, #13161c 75%), 
+        linear-gradient(-45deg, transparent 75%, #13161c 75%);
       background-size: 16px 16px;
       background-position: 0 0, 0 8px, 8px -8px, -8px 0px;
-      background-color: #0f1724;
+      background-color: #0b0c0f;
       cursor: crosshair;
     }
 
@@ -361,35 +343,35 @@
 
     .status-bar {
       background: var(--bg-panel);
-      border-top: 1px solid var(--border-color);
-      padding: 4px 14px;
+      border-top: 1px solid var(--border-subtle);
+      height: 22px;
+      padding: 0 10px;
       display: flex;
       align-items: center;
       justify-content: space-between;
-      font-size: 0.75rem;
+      font-size: 0.7rem;
       color: var(--text-muted);
       font-family: monospace;
     }
 
     .sidebar-right {
-      width: 310px;
+      width: 260px;
       background: var(--bg-panel);
-      border-left: 1px solid var(--border-color);
+      border-left: 1px solid var(--border-subtle);
       display: flex;
       flex-direction: column;
-      padding: 14px;
-      gap: 12px;
+      padding: 10px;
+      gap: 10px;
       overflow-y: auto;
     }
 
     #skin3d-wrapper {
       width: 100%;
-      height: 350px;
-      background: radial-gradient(circle, #1e293b 0%, #090d16 100%);
+      height: 280px;
+      background: #090a0d;
       border-radius: var(--radius);
-      border: 1px solid var(--border-color);
+      border: 1px solid var(--border-subtle);
       position: relative;
-      overflow: hidden;
     }
 
     #skin3d-canvas {
@@ -401,69 +383,157 @@
     .view-angles {
       display: grid;
       grid-template-columns: repeat(4, 1fr);
-      gap: 4px;
+      gap: 3px;
     }
 
     .select-styled {
-      background: var(--bg-surface);
-      border: 1px solid var(--border-color);
+      background: var(--bg-elevated);
+      border: 1px solid var(--border-subtle);
       color: #fff;
-      padding: 6px 8px;
-      border-radius: 6px;
-      font-size: 0.8rem;
+      padding: 3px 6px;
+      border-radius: var(--radius);
+      font-size: 0.72rem;
       outline: none;
       width: 100%;
       cursor: pointer;
     }
 
-    .popular-tags {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 4px;
-      margin-top: 6px;
-    }
-
-    .tag-btn {
-      background: var(--bg-surface);
-      border: none;
-      color: var(--text-muted);
-      padding: 3px 7px;
-      border-radius: 4px;
-      font-size: 0.72rem;
-      cursor: pointer;
-      transition: all 0.1s;
-    }
-
-    .tag-btn:hover {
-      background: var(--accent-green);
-      color: #fff;
-    }
-
     .toggle-label {
       display: flex;
       align-items: center;
-      gap: 6px;
+      gap: 5px;
       cursor: pointer;
-      font-size: 0.78rem;
+      font-size: 0.72rem;
       color: var(--text-main);
+    }
+
+    /* Modal Viewport (3D Painter) */
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.75);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 100;
+      padding: 16px;
+    }
+
+    .modal-backdrop.active {
+      display: flex;
+    }
+
+    .popup-window {
+      width: 95vw;
+      max-width: 1200px;
+      height: 88vh;
+      background: var(--bg-panel);
+      border: 1px solid var(--border-strong);
+      border-radius: var(--radius);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .popup-header {
+      background: var(--bg-panel);
+      padding: 0 12px;
+      height: 36px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid var(--border-subtle);
+    }
+
+    .popup-body {
+      display: flex;
+      flex: 1;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .popup-3d-viewport {
+      flex: 1;
+      height: 100%;
+      position: relative;
+      background: #08090b;
+    }
+
+    #popup3d-canvas {
+      width: 100%;
+      height: 100%;
+      display: block;
+      cursor: crosshair;
+    }
+
+    .popup-tools-floating {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      background: rgba(19, 21, 26, 0.95);
+      border: 1px solid var(--border-strong);
+      border-radius: var(--radius);
+      padding: 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      width: 200px;
+      z-index: 20;
+    }
+
+    .popup-limbs-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 3px;
+    }
+
+    .limb-toggle-btn {
+      background: var(--bg-elevated);
+      border: 1px solid var(--border-subtle);
+      color: var(--text-muted);
+      padding: 4px 0;
+      border-radius: var(--radius);
+      font-size: 0.68rem;
+      cursor: pointer;
+      text-align: center;
+    }
+
+    .limb-toggle-btn.active {
+      background: #1e283d;
+      border-color: var(--accent);
+      color: #fff;
+    }
+
+    .popup-hud-info {
+      position: absolute;
+      bottom: 10px;
+      left: 10px;
+      background: rgba(19, 21, 26, 0.92);
+      border: 1px solid var(--border-subtle);
+      padding: 6px 10px;
+      border-radius: var(--radius);
+      font-family: monospace;
+      font-size: 0.7rem;
+      color: var(--text-muted);
+      pointer-events: none;
+      z-index: 20;
     }
 
     .toast {
       position: fixed;
-      bottom: 24px;
-      right: 24px;
-      background: #162032;
-      color: #fff;
-      border: 1px solid var(--accent-green);
-      padding: 10px 18px;
-      border-radius: 6px;
-      box-shadow: 0 4px 25px rgba(0,0,0,0.6);
-      font-size: 0.85rem;
+      bottom: 16px;
+      right: 16px;
+      background: var(--bg-panel);
+      color: var(--text-main);
+      border: 1px solid var(--border-strong);
+      padding: 8px 12px;
+      border-radius: var(--radius);
+      font-size: 0.75rem;
       opacity: 0;
-      transform: translateY(10px);
-      transition: all 0.2s ease;
+      transform: translateY(6px);
+      transition: opacity 0.15s, transform 0.15s;
       pointer-events: none;
-      z-index: 1000;
+      z-index: 200;
     }
 
     .toast.show {
@@ -474,113 +544,91 @@
 </head>
 <body>
 
-  <!-- Top Header & Searcher -->
   <header>
-    <div class="brand">
-      <div class="brand-icon">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2">
-          <rect x="3" y="3" width="18" height="18" rx="2"/>
-          <path d="M9 3v18"/><path d="M15 3v18"/><path d="M3 9h18"/><path d="M3 15h18"/>
-        </svg>
-      </div>
-      <span>SkinStudio</span>
-    </div>
+    <div class="brand">Skin Studio</div>
 
-    <!-- Live Minecraft Player Skin Searcher -->
     <div class="search-group">
-      <input type="text" id="playerSearchInput" placeholder="Search player (e.g. Notch, Dream, Technoblade)..." autocomplete="off" spellcheck="false" />
+      <input type="text" id="playerSearchInput" placeholder="Find player skin..." autocomplete="off" spellcheck="false" />
       <button id="searchSkinBtn">Search</button>
     </div>
 
-    <!-- Actions & Poses.html Link -->
+    <!-- Header Navigation to Poses Studio -->
     <div class="top-actions">
-      <!-- LINK TO POSES.HTML EXTENSION -->
-      <a href="poses.html" class="btn btn-pose-ext" id="openPosePageBtn" title="Launch 3D Poses & Camera Studio extension">
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="5" r="3"/><path d="M6 22V12h12v10"/><path d="M9 12v6"/><path d="M15 12v6"/></svg>
-        3D Poses Creator ↗
-      </a>
+      <button class="btn" id="open3dPopupBtn">3D Painter</button>
+      <a href="poses.html" class="btn btn-primary" id="openPosePageBtn">Poses Studio &gt;</a>
       <input type="file" id="fileInput" accept="image/png" style="display:none;" />
-      <button class="btn" id="uploadSkinBtn" title="Upload 64x64 PNG Skin">Upload</button>
-      <button class="btn btn-primary" id="downloadSkinBtn" title="Download standard 64x64 PNG">Download (.png)</button>
+      <button class="btn" id="uploadSkinBtn">Upload</button>
+      <button class="btn" id="downloadSkinBtn">Download .png</button>
     </div>
   </header>
 
-  <!-- Studio Workspace -->
   <div class="workspace">
-
-    <!-- Left Sidebar: Tools & Palette (Default Skins section REMOVED) -->
     <aside class="sidebar-left">
       <div class="panel-box">
         <div class="panel-title">Tools</div>
         <div class="tools-grid">
-          <button class="tool-btn active" data-tool="pencil" title="Pencil (B)">Pencil</button>
-          <button class="tool-btn" data-tool="eraser" title="Eraser (E)">Eraser</button>
-          <button class="tool-btn" data-tool="bucket" title="Fill Bucket (G)">Bucket</button>
-          <button class="tool-btn" data-tool="dropper" title="Color Dropper (I)">Picker</button>
-          <button class="tool-btn" data-tool="noise" title="Shade Brush (N)">Shade</button>
-          <button class="tool-btn" data-tool="lighten" title="Lighten (L)">Lighten</button>
+          <button class="tool-btn active" data-tool="pencil">Pencil (B)</button>
+          <button class="tool-btn" data-tool="eraser">Eraser (E)</button>
+          <button class="tool-btn" data-tool="bucket">Bucket (G)</button>
+          <button class="tool-btn" data-tool="dropper">Picker (I)</button>
+          <button class="tool-btn" data-tool="noise">Shade (N)</button>
+          <button class="tool-btn" data-tool="lighten">Light (L)</button>
         </div>
       </div>
 
       <div class="panel-box">
-        <div class="panel-title">Color Studio</div>
+        <div class="panel-title">Color</div>
         <div class="color-preview-row">
           <div class="color-swatch-large" id="currentColorSwatch" style="background-color: #bb8361;">
             <input type="color" id="nativeColorPicker" value="#bb8361">
           </div>
-          <div class="color-inputs">
-            <input type="text" id="hexColorInput" class="color-hex" value="#BB8361" maxlength="7">
-            <div style="font-size: 0.68rem; color: var(--text-muted);">Active Color</div>
-          </div>
+          <input type="text" id="hexColorInput" class="color-hex" value="#BB8361" maxlength="7">
         </div>
 
-        <div class="panel-title" style="margin-top: 10px;">Minecraft Palette</div>
+        <div class="panel-title" style="margin-top: 8px;">Palette</div>
         <div class="palette-grid" id="presetPalette"></div>
 
-        <div class="panel-title" style="margin-top: 10px;">Recent Colors</div>
+        <div class="panel-title" style="margin-top: 8px;">Recent</div>
         <div class="palette-grid" id="recentPalette"></div>
       </div>
 
       <div class="panel-box">
-        <div class="panel-title">Popular Players</div>
+        <div class="panel-title">Presets</div>
         <div class="popular-tags">
           <button class="tag-btn" data-player="Notch">Notch</button>
           <button class="tag-btn" data-player="Jeb_">Jeb_</button>
           <button class="tag-btn" data-player="Dream">Dream</button>
           <button class="tag-btn" data-player="Technoblade">Technoblade</button>
           <button class="tag-btn" data-player="Mumbo">Mumbo</button>
-          <button class="tag-btn" data-player="DanTDM">DanTDM</button>
-          <button class="tag-btn" data-player="Grian">Grian</button>
         </div>
       </div>
     </aside>
 
-    <!-- Center 2D Pixel Editor -->
     <main class="editor-center">
       <div class="editor-toolbar">
         <div class="toolbar-group">
-          <button class="btn" id="undoBtn">Undo</button>
-          <button class="btn" id="redoBtn">Redo</button>
+          <button class="btn" id="undoBtn" disabled>Undo</button>
+          <button class="btn" id="redoBtn" disabled>Redo</button>
           <button class="btn" id="clearCanvasBtn">Clear</button>
         </div>
 
         <div class="toolbar-group">
           <label class="toggle-label">
-            <input type="checkbox" id="toggleGrid" checked> Pixel Grid
+            <input type="checkbox" id="toggleGrid" checked> Grid
           </label>
           <label class="toggle-label">
-            <input type="checkbox" id="toggleUVGuide" checked> UV Guides
+            <input type="checkbox" id="toggleUVGuide" checked> UV
           </label>
-          <select class="select-styled" id="layerFilterSelect" style="width: 120px; padding: 3px 6px;">
+          <select class="select-styled" id="layerFilterSelect" style="width: 100px;">
             <option value="all">All Layers</option>
             <option value="base">Base Layer</option>
-            <option value="overlay">Outer Overlay</option>
+            <option value="overlay">Overlay</option>
           </select>
         </div>
 
         <div class="toolbar-group">
           <button class="btn" id="zoomOutBtn">-</button>
-          <span id="zoomLevelText" style="font-family: monospace; font-size: 0.8rem; min-width: 44px; text-align: center;">800%</span>
+          <span id="zoomLevelText" style="font-family: monospace; min-width: 36px; text-align: center;">800%</span>
           <button class="btn" id="zoomInBtn">+</button>
         </div>
       </div>
@@ -593,62 +641,128 @@
       </div>
 
       <div class="status-bar">
-        <div id="coordStatus">X: 0, Y: 0</div>
-        <div id="partStatus">Torso (Front)</div>
-        <div id="colorStatus">HEX: #000000</div>
+        <div id="coordStatus">X: --, Y: --</div>
+        <div id="partStatus">Idle</div>
+        <div id="colorStatus">HEX: --</div>
       </div>
     </main>
 
-    <!-- Right 3D Dock Preview -->
     <aside class="sidebar-right">
       <div class="panel-title" style="display:flex; justify-content:space-between;">
-        <span>3D Mini Preview</span>
-        <span style="color:var(--accent-green); font-size:0.65rem;">LIVE SYNC</span>
+        <span>3D Preview</span>
+        <span style="color:var(--text-muted);">Sync Active</span>
       </div>
-      
+
       <div id="skin3d-wrapper">
         <canvas id="skin3d-canvas"></canvas>
       </div>
 
       <div class="panel-box">
-        <div class="panel-title">Model Camera & Poses</div>
+        <div class="panel-title">Camera</div>
         <div class="view-angles">
           <button class="btn" data-angle="front">Front</button>
           <button class="btn" data-angle="back">Back</button>
           <button class="btn" data-angle="left">Left</button>
-          <button class="btn" data-angle="iso">3D Iso</button>
+          <button class="btn" data-angle="iso">Iso</button>
         </div>
 
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 8px;">
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-top: 6px;">
           <div>
-            <div style="font-size: 0.7rem; color: var(--text-muted); margin-bottom: 4px;">Animation</div>
+            <div style="color: var(--text-muted); font-size: 0.65rem; margin-bottom: 2px;">Motion</div>
             <select class="select-styled" id="animSelect">
+              <option value="walk" selected>Walk</option>
               <option value="idle">Idle</option>
-              <option value="walk">Walk</option>
               <option value="run">Run</option>
-              <option value="none">Pause Pose</option>
+              <option value="none">Static</option>
             </select>
           </div>
           <div>
-            <div style="font-size: 0.7rem; color: var(--text-muted); margin-bottom: 4px;">Arm Shape</div>
+            <div style="color: var(--text-muted); font-size: 0.65rem; margin-bottom: 2px;">Model</div>
             <select class="select-styled" id="modelShapeSelect">
-              <option value="default">Steve (4px)</option>
+              <option value="default" selected>Steve (4px)</option>
               <option value="slim">Alex (3px)</option>
             </select>
           </div>
         </div>
 
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 10px;">
+        <div style="display: flex; justify-content: space-between; margin-top: 8px;">
           <label class="toggle-label">
-            <input type="checkbox" id="autoRotateToggle"> Auto Rotate
+            <input type="checkbox" id="autoRotateToggle"> Rotate
           </label>
           <label class="toggle-label">
-            <input type="checkbox" id="outerLayerToggle" checked> Outer Layer
+            <input type="checkbox" id="outerLayerToggle" checked> Overlay
           </label>
         </div>
       </div>
     </aside>
+  </div>
 
+  <div class="modal-backdrop" id="popup3dModal">
+    <div class="popup-window">
+      <div class="popup-header">
+        <span style="font-weight:600; color:#fff;">3D Mesh Painter</span>
+        <div style="display:flex; align-items:center; gap:6px;">
+          <button class="btn btn-primary" id="saveAndClosePopupBtn">Done</button>
+          <button class="btn" id="closePopupModalBtn">Close</button>
+        </div>
+      </div>
+
+      <div class="popup-body">
+        <div class="popup-tools-floating">
+          <div class="panel-title">Tools</div>
+          <div class="tools-grid">
+            <button class="tool-btn active" data-popup-tool="pencil">Pencil</button>
+            <button class="tool-btn" data-popup-tool="eraser">Eraser</button>
+            <button class="tool-btn" data-popup-tool="dropper">Picker</button>
+            <button class="tool-btn" data-popup-tool="noise">Shade</button>
+            <button class="tool-btn" data-popup-tool="lighten">Light</button>
+            <button class="tool-btn" id="popupUndoBtn">Undo</button>
+          </div>
+
+          <div style="margin-top:4px;">
+            <div style="color:var(--text-muted); font-size:0.65rem; margin-bottom:2px;">Brush Color</div>
+            <input type="color" id="popupColorPicker" value="#bb8361" style="width:100%; height:24px; border:none; background:transparent; cursor:pointer;">
+          </div>
+
+          <div style="border-top: 1px solid var(--border-subtle); padding-top: 6px;">
+            <div class="panel-title">Layers</div>
+            <div style="display:flex; flex-direction:column; gap:4px;">
+              <label class="toggle-label">
+                <input type="checkbox" id="popupBaseLayerToggle" checked> Base Skin
+              </label>
+              <label class="toggle-label">
+                <input type="checkbox" id="popupOuterLayerToggle" checked> Outer Overlay
+              </label>
+            </div>
+          </div>
+
+          <div style="border-top: 1px solid var(--border-subtle); padding-top: 6px;">
+            <div class="panel-title">Isolate Limb</div>
+            <div class="popup-limbs-grid">
+              <button class="limb-toggle-btn active" data-popup-limb="head">Head</button>
+              <button class="limb-toggle-btn active" data-popup-limb="body">Torso</button>
+              <button class="limb-toggle-btn active" data-popup-limb="rightArm">R.Arm</button>
+              <button class="limb-toggle-btn active" data-popup-limb="leftArm">L.Arm</button>
+              <button class="limb-toggle-btn active" data-popup-limb="rightLeg">R.Leg</button>
+              <button class="limb-toggle-btn active" data-popup-limb="leftLeg">L.Leg</button>
+            </div>
+          </div>
+
+          <div style="border-top: 1px solid var(--border-subtle); padding-top: 6px; display:flex; gap:4px;">
+            <button class="btn" id="popupResetCamBtn" style="flex:1;">Reset Cam</button>
+            <button class="btn" id="popupPoseToggleBtn" style="flex:1;">T-Pose</button>
+          </div>
+        </div>
+
+        <div class="popup-3d-viewport" id="popup3dViewport">
+          <canvas id="popup3d-canvas"></canvas>
+        </div>
+
+        <div class="popup-hud-info">
+          Left Drag: Paint | Right Drag: Orbit | Scroll: Zoom | Pixel: <span id="popupHoverCoord">None</span>
+        </div>
+      </div>
+    </div>
   </div>
 
   <div class="toast" id="toast">Notification</div>
@@ -666,7 +780,8 @@
       layerFilter: 'all',
       history: [],
       historyIndex: -1,
-      recentColors: ['#bb8361', '#452b1b', '#00a8a8', '#2c3577', '#ffffff', '#000000']
+      recentColors: ['#bb8361', '#452b1b', '#00a8a8', '#2c3577', '#ffffff', '#000000'],
+      isTPose: false
     };
 
     const SKIN_PARTS = [
@@ -676,13 +791,32 @@
       { name: 'Head Front', layer: 'base', x: 8, y: 8, w: 8, h: 8, color: '#38bdf8' },
       { name: 'Head Left', layer: 'base', x: 16, y: 8, w: 8, h: 8, color: '#38bdf8' },
       { name: 'Head Back', layer: 'base', x: 24, y: 8, w: 8, h: 8, color: '#38bdf8' },
+      { name: 'Hat Top', layer: 'overlay', x: 40, y: 0, w: 8, h: 8, color: '#818cf8' },
+      { name: 'Hat Bottom', layer: 'overlay', x: 48, y: 0, w: 8, h: 8, color: '#818cf8' },
+      { name: 'Hat Right', layer: 'overlay', x: 32, y: 8, w: 8, h: 8, color: '#818cf8' },
       { name: 'Hat Front', layer: 'overlay', x: 40, y: 8, w: 8, h: 8, color: '#818cf8' },
+      { name: 'Hat Left', layer: 'overlay', x: 48, y: 8, w: 8, h: 8, color: '#818cf8' },
+      { name: 'Hat Back', layer: 'overlay', x: 56, y: 8, w: 8, h: 8, color: '#818cf8' },
+      { name: 'Torso Top', layer: 'base', x: 20, y: 16, w: 8, h: 4, color: '#4ade80' },
+      { name: 'Torso Bottom', layer: 'base', x: 28, y: 16, w: 8, h: 4, color: '#4ade80' },
+      { name: 'Torso Right', layer: 'base', x: 16, y: 20, w: 4, h: 12, color: '#4ade80' },
       { name: 'Torso Front', layer: 'base', x: 20, y: 20, w: 8, h: 12, color: '#4ade80' },
+      { name: 'Torso Left', layer: 'base', x: 28, y: 20, w: 4, h: 12, color: '#4ade80' },
+      { name: 'Torso Back', layer: 'base', x: 32, y: 20, w: 8, h: 12, color: '#4ade80' },
+      { name: 'Jacket Top', layer: 'overlay', x: 20, y: 32, w: 8, h: 4, color: '#34d399' },
+      { name: 'Jacket Bottom', layer: 'overlay', x: 28, y: 32, w: 8, h: 4, color: '#34d399' },
+      { name: 'Jacket Right', layer: 'overlay', x: 16, y: 36, w: 4, h: 12, color: '#34d399' },
       { name: 'Jacket Front', layer: 'overlay', x: 20, y: 36, w: 8, h: 12, color: '#34d399' },
-      { name: 'R Arm Front', layer: 'base', x: 44, y: 20, w: 4, h: 12, color: '#facc15' },
-      { name: 'L Arm Front', layer: 'base', x: 36, y: 52, w: 4, h: 12, color: '#c084fc' },
-      { name: 'R Leg Front', layer: 'base', x: 4, y: 20, w: 4, h: 12, color: '#fb923c' },
-      { name: 'L Leg Front', layer: 'base', x: 20, y: 52, w: 4, h: 12, color: '#f472b6' }
+      { name: 'Jacket Left', layer: 'overlay', x: 28, y: 36, w: 4, h: 12, color: '#34d399' },
+      { name: 'Jacket Back', layer: 'overlay', x: 32, y: 36, w: 8, h: 12, color: '#34d399' },
+      { name: 'R Arm Base', layer: 'base', x: 40, y: 16, w: 16, h: 16, color: '#facc15' },
+      { name: 'R Arm Sleeve', layer: 'overlay', x: 40, y: 32, w: 16, h: 16, color: '#eab308' },
+      { name: 'L Arm Base', layer: 'base', x: 32, y: 48, w: 16, h: 16, color: '#c084fc' },
+      { name: 'L Arm Sleeve', layer: 'overlay', x: 48, y: 48, w: 16, h: 16, color: '#a855f7' },
+      { name: 'R Leg Base', layer: 'base', x: 0, y: 16, w: 16, h: 16, color: '#fb923c' },
+      { name: 'R Leg Pants', layer: 'overlay', x: 0, y: 32, w: 16, h: 16, color: '#f97316' },
+      { name: 'L Leg Base', layer: 'base', x: 16, y: 48, w: 16, h: 16, color: '#f472b6' },
+      { name: 'L Leg Pants', layer: 'overlay', x: 0, y: 48, w: 16, h: 16, color: '#ec4899' }
     ];
 
     const mainCanvas = document.getElementById('mainCanvas');
@@ -691,13 +825,13 @@
     const overlayCtx = overlayCanvas.getContext('2d');
     const canvasStack = document.getElementById('canvasStack');
     let skinViewer = null;
+    let hoveredPixel = { x: -1, y: -1 };
 
-    function showToast(msg, isError = false) {
+    function showToast(msg) {
       const toast = document.getElementById('toast');
       toast.textContent = msg;
-      toast.style.borderColor = isError ? 'var(--danger)' : 'var(--accent-green)';
       toast.classList.add('show');
-      setTimeout(() => toast.classList.remove('show'), 3000);
+      setTimeout(() => toast.classList.remove('show'), 2400);
     }
 
     function hexToRgb(hex) {
@@ -711,19 +845,17 @@
       return '#' + [r, g, b].map(x => x.toString(16).padStart(2, '0')).join('').toUpperCase();
     }
 
-    // Save to LocalStorage so poses.html receives this skin immediately
+    // Save skin to local storage so poses.html & animator.html load it immediately
     function syncToLocalStorage() {
       try {
-        localStorage.setItem('minecraft_active_skin', mainCanvas.toDataURL());
+        localStorage.setItem('minecraft_active_skin', mainCanvas.toDataURL('image/png'));
       } catch (e) {}
     }
 
-    document.getElementById('openPosePageBtn').onclick = () => {
-      syncToLocalStorage();
-    };
+    document.getElementById('openPosePageBtn').onclick = () => syncToLocalStorage();
 
     function setZoom(newZoom) {
-      state.zoom = Math.max(4, Math.min(16, newZoom));
+      state.zoom = Math.max(4, Math.min(18, newZoom));
       const size = 64 * state.zoom;
       mainCanvas.style.width = size + 'px';
       mainCanvas.style.height = size + 'px';
@@ -770,8 +902,17 @@
       drawOverlay();
     }
 
+    function isCoordInActiveLayer(x, y) {
+      if (state.layerFilter === 'all') return true;
+      const part = SKIN_PARTS.find(p => x >= p.x && x < p.x + p.w && y >= p.y && y < p.y + p.h);
+      if (!part) return true;
+      return part.layer === state.layerFilter;
+    }
+
     function applyPixel(x, y) {
       if (x < 0 || x >= 64 || y < 0 || y >= 64) return;
+      if (!isCoordInActiveLayer(x, y)) return;
+
       if (state.tool === 'pencil') {
         mainCtx.clearRect(x, y, 1, 1);
         mainCtx.fillStyle = state.color;
@@ -780,7 +921,7 @@
         mainCtx.clearRect(x, y, 1, 1);
       } else if (state.tool === 'noise') {
         const rgb = hexToRgb(state.color);
-        const delta = Math.floor((Math.random() - 0.5) * 32);
+        const delta = Math.floor((Math.random() - 0.5) * 36);
         const r = Math.min(255, Math.max(0, rgb.r + delta));
         const g = Math.min(255, Math.max(0, rgb.g + delta));
         const b = Math.min(255, Math.max(0, rgb.b + delta));
@@ -790,9 +931,9 @@
       } else if (state.tool === 'lighten') {
         const p = mainCtx.getImageData(x, y, 1, 1).data;
         if (p[3] === 0) return;
-        const r = Math.min(255, p[0] + 18);
-        const g = Math.min(255, p[1] + 18);
-        const b = Math.min(255, p[2] + 18);
+        const r = Math.min(255, p[0] + 16);
+        const g = Math.min(255, p[1] + 16);
+        const b = Math.min(255, p[2] + 16);
         mainCtx.clearRect(x, y, 1, 1);
         mainCtx.fillStyle = `rgba(${r},${g},${b},${p[3]/255})`;
         mainCtx.fillRect(x, y, 1, 1);
@@ -815,6 +956,8 @@
     }
 
     function floodFill(startX, startY, fillHex) {
+      if (!isCoordInActiveLayer(startX, startY)) return;
+
       const imgData = mainCtx.getImageData(0, 0, 64, 64);
       const data = imgData.data;
       const targetIdx = (startY * 64 + startX) * 4;
@@ -822,8 +965,9 @@
       const targetG = data[targetIdx + 1];
       const targetB = data[targetIdx + 2];
       const targetA = data[targetIdx + 3];
+
       const fillRgb = hexToRgb(fillHex);
-      if (targetR === fillRgb.r && targetG === fillRgb.g && targetB === fillRgb.b && targetA === 255) return;
+      if (targetA === 255 && targetR === fillRgb.r && targetG === fillRgb.g && targetB === fillRgb.b) return;
 
       const queue = [[startX, startY]];
       const visited = new Uint8Array(64 * 64);
@@ -837,17 +981,17 @@
         data[idx + 2] = fillRgb.b;
         data[idx + 3] = 255;
 
-        const neighbors = [[cx+1, cy], [cx-1, cy], [cx, cy+1], [cx, cy-1]];
+        const neighbors = [[cx + 1, cy], [cx - 1, cy], [cx, cy + 1], [cx, cy - 1]];
         for (const [nx, ny] of neighbors) {
-          if (nx >= 0 && nx < 64 && ny >= 0 && ny < 64) {
+          if (nx >= 0 && nx < 64 && ny >= 0 && ny < 64 && isCoordInActiveLayer(nx, ny)) {
             const nPos = ny * 64 + nx;
             if (!visited[nPos]) {
               visited[nPos] = 1;
               const nIdx = nPos * 4;
-              if (data[nIdx] === targetR && data[nIdx+1] === targetG &&
-                  data[nIdx+2] === targetB && data[nIdx+3] === targetA) {
-                queue.push([nx, ny]);
-              }
+              const match = targetA === 0 
+                ? (data[nIdx + 3] === 0)
+                : (data[nIdx] === targetR && data[nIdx + 1] === targetG && data[nIdx + 2] === targetB && data[nIdx + 3] === targetA);
+              if (match) queue.push([nx, ny]);
             }
           }
         }
@@ -858,16 +1002,22 @@
       drawOverlay();
     }
 
-    let hoveredPixel = { x: -1, y: -1 };
-
     function drawOverlay() {
       const w = overlayCanvas.width;
       const h = overlayCanvas.height;
       const scale = state.zoom;
       overlayCtx.clearRect(0, 0, w, h);
 
+      if (state.layerFilter !== 'all') {
+        overlayCtx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+        overlayCtx.fillRect(0, 0, w, h);
+        SKIN_PARTS.filter(p => p.layer === state.layerFilter).forEach(part => {
+          overlayCtx.clearRect(part.x * scale, part.y * scale, part.w * scale, part.h * scale);
+        });
+      }
+
       if (state.showGrid) {
-        overlayCtx.strokeStyle = 'rgba(255, 255, 255, 0.08)';
+        overlayCtx.strokeStyle = 'rgba(255, 255, 255, 0.05)';
         overlayCtx.lineWidth = 1;
         overlayCtx.beginPath();
         for (let i = 0; i <= 64; i++) {
@@ -881,21 +1031,25 @@
 
       if (state.showUVGuide) {
         SKIN_PARTS.forEach(part => {
+          if (state.layerFilter !== 'all' && part.layer !== state.layerFilter) return;
           overlayCtx.strokeStyle = part.color;
-          overlayCtx.lineWidth = 1.5;
+          overlayCtx.lineWidth = 1;
           overlayCtx.strokeRect(part.x * scale + 0.5, part.y * scale + 0.5, part.w * scale - 1, part.h * scale - 1);
         });
       }
 
       if (hoveredPixel.x >= 0 && hoveredPixel.x < 64 && hoveredPixel.y >= 0 && hoveredPixel.y < 64) {
         overlayCtx.strokeStyle = '#ffffff';
-        overlayCtx.lineWidth = 2;
+        overlayCtx.lineWidth = 1.5;
         overlayCtx.strokeRect(hoveredPixel.x * scale, hoveredPixel.y * scale, scale, scale);
       }
     }
 
     function getCanvasCoords(e) {
       const rect = mainCanvas.getBoundingClientRect();
+      if (e.clientX < rect.left || e.clientX >= rect.right || e.clientY < rect.top || e.clientY >= rect.bottom) {
+        return null;
+      }
       const x = Math.floor((e.clientX - rect.left) / (rect.width / 64));
       const y = Math.floor((e.clientY - rect.top) / (rect.height / 64));
       return { x: Math.max(0, Math.min(63, x)), y: Math.max(0, Math.min(63, y)) };
@@ -903,10 +1057,13 @@
 
     canvasStack.addEventListener('mousedown', (e) => {
       if (e.button !== 0) return;
-      const { x, y } = getCanvasCoords(e);
+      const coords = getCanvasCoords(e);
+      if (!coords) return;
+      const { x, y } = coords;
       state.isDrawing = true;
       state.lastX = x;
       state.lastY = y;
+
       if (state.tool === 'dropper') {
         const p = mainCtx.getImageData(x, y, 1, 1).data;
         if (p[3] > 0) {
@@ -923,15 +1080,24 @@
     });
 
     window.addEventListener('mousemove', (e) => {
-      const { x, y } = getCanvasCoords(e);
-      hoveredPixel = { x, y };
+      const coords = getCanvasCoords(e);
+      if (!coords) {
+        hoveredPixel = { x: -1, y: -1 };
+        document.getElementById('coordStatus').textContent = 'X: --, Y: --';
+        document.getElementById('partStatus').textContent = 'Idle';
+        document.getElementById('colorStatus').textContent = 'HEX: --';
+        drawOverlay();
+        return;
+      }
 
+      const { x, y } = coords;
+      hoveredPixel = { x, y };
       document.getElementById('coordStatus').textContent = `X: ${x}, Y: ${y}`;
       const part = SKIN_PARTS.find(p => x >= p.x && x < p.x + p.w && y >= p.y && y < p.y + p.h);
-      document.getElementById('partStatus').textContent = part ? `${part.name}` : 'Transparent / Empty';
+      document.getElementById('partStatus').textContent = part ? `${part.name}` : 'Transparent';
 
       const p = mainCtx.getImageData(x, y, 1, 1).data;
-      document.getElementById('colorStatus').textContent = p[3] > 0 ? `HEX: ${rgbToHex(p[0], p[1], p[2])}` : 'HEX: Transparent';
+      document.getElementById('colorStatus').textContent = p[3] > 0 ? `${rgbToHex(p[0], p[1], p[2])}` : 'None';
 
       if (state.isDrawing) {
         drawLine(state.lastX, state.lastY, x, y);
@@ -966,6 +1132,8 @@
       if (state.historyIndex > 0) {
         state.historyIndex--;
         mainCtx.putImageData(state.history[state.historyIndex], 0, 0);
+        document.getElementById('undoBtn').disabled = state.historyIndex <= 0;
+        document.getElementById('redoBtn').disabled = state.historyIndex >= state.history.length - 1;
         sync3D(true);
         drawOverlay();
         syncToLocalStorage();
@@ -976,6 +1144,8 @@
       if (state.historyIndex < state.history.length - 1) {
         state.historyIndex++;
         mainCtx.putImageData(state.history[state.historyIndex], 0, 0);
+        document.getElementById('undoBtn').disabled = state.historyIndex <= 0;
+        document.getElementById('redoBtn').disabled = state.historyIndex >= state.history.length - 1;
         sync3D(true);
         drawOverlay();
         syncToLocalStorage();
@@ -983,7 +1153,7 @@
     };
 
     document.getElementById('clearCanvasBtn').onclick = () => {
-      if (confirm('Clear the entire skin texture?')) {
+      if (confirm('Clear canvas?')) {
         mainCtx.clearRect(0, 0, 64, 64);
         saveHistoryState();
         sync3D(true);
@@ -994,19 +1164,63 @@
 
     let syncThrottle = null;
     function sync3D(immediate = false) {
-      if (!skinViewer) return;
+      const dataUrl = mainCanvas.toDataURL('image/png');
       if (immediate) {
         clearTimeout(syncThrottle);
         syncThrottle = null;
-        skinViewer.loadSkin(mainCanvas.toDataURL());
+        if (skinViewer) skinViewer.loadSkin(dataUrl);
+        if (popupViewer) popupViewer.loadSkin(dataUrl);
         return;
       }
       if (!syncThrottle) {
         syncThrottle = setTimeout(() => {
-          skinViewer.loadSkin(mainCanvas.toDataURL());
+          if (skinViewer) skinViewer.loadSkin(dataUrl);
+          if (popupViewer) popupViewer.loadSkin(dataUrl);
           syncThrottle = null;
-        }, 50);
+        }, 40);
       }
+    }
+
+    function setAnimation(animType) {
+      if (!skinViewer) return;
+      if (animType === 'walk') skinViewer.animation = new skinview3d.WalkingAnimation();
+      else if (animType === 'run') skinViewer.animation = new skinview3d.RunningAnimation();
+      else if (animType === 'idle') skinViewer.animation = new skinview3d.IdleAnimation();
+      else skinViewer.animation = null;
+    }
+
+    function setModelShape(shape) {
+      if (skinViewer && skinViewer.playerObject) {
+        skinViewer.playerObject.skin.modelType = shape;
+        skinViewer.loadSkin(mainCanvas.toDataURL('image/png'), { model: shape });
+      }
+      if (popupViewer && popupViewer.playerObject) {
+        popupViewer.playerObject.skin.modelType = shape;
+        popupViewer.loadSkin(mainCanvas.toDataURL('image/png'), { model: shape });
+      }
+      showToast(`Model: ${shape === 'slim' ? 'Alex' : 'Steve'}`);
+    }
+
+    function setCameraAngle(angle) {
+      if (!skinViewer || !skinViewer.camera) return;
+      if (angle === 'front') skinViewer.camera.position.set(0, 0, 42);
+      else if (angle === 'back') skinViewer.camera.position.set(0, 0, -42);
+      else if (angle === 'left') skinViewer.camera.position.set(-42, 0, 0);
+      else if (angle === 'iso') skinViewer.camera.position.set(25, 20, 35);
+      skinViewer.camera.lookAt(0, 0, 0);
+    }
+
+    function setOuterLayersVisible(visible) {
+      const viewers = [skinViewer, popupViewer];
+      viewers.forEach(v => {
+        if (!v || !v.playerObject || !v.playerObject.skin) return;
+        const skin = v.playerObject.skin;
+        ['head', 'body', 'rightArm', 'leftArm', 'rightLeg', 'leftLeg'].forEach(limb => {
+          if (skin[limb] && skin[limb].outerLayer) {
+            skin[limb].outerLayer.visible = visible;
+          }
+        });
+      });
     }
 
     function init3DDock() {
@@ -1015,107 +1229,276 @@
       try {
         skinViewer = new skinview3d.SkinViewer({
           canvas: canvas,
-          width: container.clientWidth || 300,
-          height: 350,
-          skin: mainCanvas.toDataURL()
+          width: container.clientWidth || 240,
+          height: 280,
+          skin: mainCanvas.toDataURL('image/png')
         });
-        skinViewer.camera.position.set(0, 15, 45);
+        skinViewer.camera.position.set(0, 5, 42);
         skinViewer.zoom = 0.85;
         if (typeof skinview3d.createOrbitControls === 'function') {
           skinview3d.createOrbitControls(skinViewer);
         }
-        skinViewer.animation = new skinview3d.WalkingAnimation();
+        setAnimation('walk');
+
+        document.getElementById('animSelect').addEventListener('change', (e) => setAnimation(e.target.value));
+        document.getElementById('modelShapeSelect').addEventListener('change', (e) => setModelShape(e.target.value));
+        document.getElementById('autoRotateToggle').addEventListener('change', (e) => {
+          skinViewer.autoRotate = e.target.checked;
+        });
+        document.getElementById('outerLayerToggle').addEventListener('change', (e) => {
+          setOuterLayersVisible(e.target.checked);
+        });
+        document.querySelectorAll('.view-angles button').forEach(btn => {
+          btn.addEventListener('click', () => setCameraAngle(btn.dataset.angle));
+        });
       } catch (e) {
-        console.warn("Dock 3D init error:", e);
+        console.warn("3D Dock init error:", e);
       }
     }
 
-    // Bulletproof Searcher
-    function blobToDataUrl(blob) {
-      return new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onloadend = () => resolve(reader.result);
-        reader.onerror = reject;
-        reader.readAsDataURL(blob);
+    /* 3D Pop-Up Studio */
+    let popupViewer = null;
+    let is3dPainting = false;
+    let lastPaintedPixel = { x: -1, y: -1 };
+    let popupCamSpherical = { radius: 52, phi: 1.35, theta: 0 };
+    let isPopupOrbiting = false;
+    let lastPopupMouse = { x: 0, y: 0 };
+
+    function initPopup3DViewer() {
+      if (popupViewer) return;
+      const container = document.getElementById('popup3dViewport');
+      const canvas = document.getElementById('popup3d-canvas');
+
+      popupViewer = new skinview3d.SkinViewer({
+        canvas: canvas,
+        width: container.clientWidth || 900,
+        height: container.clientHeight || 650,
+        skin: mainCanvas.toDataURL('image/png')
+      });
+
+      popupViewer.animation = null;
+      updatePopupCamera();
+      setupPopupPaintingInteractions(canvas);
+
+      function loop() {
+        if (document.getElementById('popup3dModal').classList.contains('active')) {
+          popupViewer.render();
+        }
+        requestAnimationFrame(loop);
+      }
+      requestAnimationFrame(loop);
+    }
+
+    function updatePopupCamera() {
+      if (!popupViewer) return;
+      const { radius, phi, theta } = popupCamSpherical;
+      popupViewer.camera.position.x = radius * Math.sin(phi) * Math.sin(theta);
+      popupViewer.camera.position.y = radius * Math.cos(phi);
+      popupViewer.camera.position.z = radius * Math.sin(phi) * Math.cos(theta);
+      popupViewer.camera.lookAt(0, 0, 0);
+    }
+
+    function updatePopupLayersVisibility() {
+      if (!popupViewer || !popupViewer.playerObject || !popupViewer.playerObject.skin) return;
+      const skin = popupViewer.playerObject.skin;
+      const showBase = document.getElementById('popupBaseLayerToggle').checked;
+      const showOuter = document.getElementById('popupOuterLayerToggle').checked;
+
+      ['head', 'body', 'rightArm', 'leftArm', 'rightLeg', 'leftLeg'].forEach(limb => {
+        if (skin[limb]) {
+          if (skin[limb].innerLayer) skin[limb].innerLayer.visible = showBase;
+          if (skin[limb].outerLayer) skin[limb].outerLayer.visible = showOuter;
+        }
       });
     }
 
-    async function searchAndLoadSkin(username) {
-      if (!username || !username.trim()) return;
-      username = username.trim();
-      showToast(`Searching skin for "${username}"...`);
+    function setupPopupPaintingInteractions(canvas) {
+      const raycaster = new THREE.Raycaster();
+      const mouse = new THREE.Vector2();
 
-      // 1. Ashcon API
-      try {
-        const res = await fetch(`https://api.ashcon.app/mojang/v2/user/${encodeURIComponent(username)}`);
-        if (res.ok) {
-          const json = await res.json();
-          if (json.textures && json.textures.skin && json.textures.skin.data) {
-            await applyTextureFromUrl('data:image/png;base64,' + json.textures.skin.data);
-            showToast(`Loaded ${json.username || username}'s skin!`);
-            return;
+      function getRaycastUV(e) {
+        const rect = canvas.getBoundingClientRect();
+        mouse.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+        mouse.y = -((clientY - rect.top) / rect.height) * 2 + 1;
+        raycaster.setFromCamera(mouse, popupViewer.camera);
+
+        const meshes = [];
+        popupViewer.playerObject.traverse(child => {
+          if (child.isMesh && child.visible) {
+            meshes.push(child);
+          }
+        });
+
+        const hits = raycaster.intersectObjects(meshes, false);
+        if (hits.length > 0 && hits[0].uv) {
+          const uv = hits[0].uv;
+          const px = Math.floor(uv.x * 64);
+          const py = Math.floor((1.0 - uv.y) * 64);
+          return {
+            x: Math.max(0, Math.min(63, px)),
+            y: Math.max(0, Math.min(63, py)),
+            mesh: hits[0].object
+          };
+        }
+        return null;
+      }
+
+      canvas.addEventListener('contextmenu', (e) => e.preventDefault());
+
+      canvas.addEventListener('mousedown', (e) => {
+        if (e.button === 2) {
+          isPopupOrbiting = true;
+          lastPopupMouse = { x: e.clientX, y: e.clientY };
+          return;
+        }
+
+        if (e.button === 0) {
+          const hit = getRaycastUV(e);
+          if (hit) {
+            is3dPainting = true;
+            lastPaintedPixel = { x: hit.x, y: hit.y };
+
+            if (state.tool === 'dropper') {
+              const p = mainCtx.getImageData(hit.x, hit.y, 1, 1).data;
+              if (p[3] > 0) {
+                setColor(rgbToHex(p[0], p[1], p[2]));
+                setTool('pencil');
+              }
+            } else {
+              applyPixel(hit.x, hit.y);
+              sync3D(true);
+              drawOverlay();
+            }
+          } else {
+            isPopupOrbiting = true;
+            lastPopupMouse = { x: e.clientX, y: e.clientY };
           }
         }
-      } catch (e) {}
+      });
 
-      // 2. PlayerDB + Proxy
-      try {
-        const res = await fetch(`https://playerdb.co/api/player/minecraft/${encodeURIComponent(username)}`);
-        if (res.ok) {
-          const json = await res.json();
-          if (json.code === 'player.found' && json.data.player.skin_texture) {
-            const proxy = await fetch(`https://api.allorigins.win/raw?url=${encodeURIComponent(json.data.player.skin_texture)}`);
-            if (proxy.ok) {
-              const b = await proxy.blob();
-              const d = await blobToDataUrl(b);
-              await applyTextureFromUrl(d);
-              showToast(`Loaded ${username}'s skin!`);
-              return;
+      window.addEventListener('mousemove', (e) => {
+        const isRightHeld = (e.buttons & 2) !== 0;
+        const isLeftHeld = (e.buttons & 1) !== 0;
+
+        if (isPopupOrbiting && (isRightHeld || (isLeftHeld && !is3dPainting))) {
+          const dx = e.clientX - lastPopupMouse.x;
+          const dy = e.clientY - lastPopupMouse.y;
+          lastPopupMouse = { x: e.clientX, y: e.clientY };
+
+          popupCamSpherical.theta -= dx * 0.008;
+          popupCamSpherical.phi = Math.max(0.05, Math.min(Math.PI - 0.05, popupCamSpherical.phi - dy * 0.008));
+          updatePopupCamera();
+          return;
+        } else if (!isRightHeld && !isLeftHeld) {
+          isPopupOrbiting = false;
+        }
+
+        if (is3dPainting && isLeftHeld) {
+          const hit = getRaycastUV(e);
+          if (hit) {
+            document.getElementById('popupHoverCoord').textContent = `X: ${hit.x}, Y: ${hit.y}`;
+            if (hit.x !== lastPaintedPixel.x || hit.y !== lastPaintedPixel.y) {
+              drawLine(lastPaintedPixel.x, lastPaintedPixel.y, hit.x, hit.y);
+              lastPaintedPixel = { x: hit.x, y: hit.y };
+              sync3D(false);
+              drawOverlay();
             }
           }
+        } else {
+          is3dPainting = false;
+          const hit = getRaycastUV(e);
+          document.getElementById('popupHoverCoord').textContent = hit ? `X: ${hit.x}, Y: ${hit.y}` : 'None';
         }
-      } catch (e) {}
+      });
 
-      // 3. MC-Heads Proxy
-      try {
-        const proxy = await fetch(`https://api.allorigins.win/raw?url=${encodeURIComponent('https://mc-heads.net/skin/' + username)}`);
-        if (proxy.ok) {
-          const b = await proxy.blob();
-          if (b.size > 200) {
-            const d = await blobToDataUrl(b);
-            await applyTextureFromUrl(d);
-            showToast(`Loaded ${username}'s skin!`);
-            return;
-          }
-        }
-      } catch (e) {}
-
-      showToast(`Could not find skin for "${username}". Check spelling.`, true);
-    }
-
-    function applyTextureFromUrl(dataUrl) {
-      return new Promise((resolve) => {
-        const img = new Image();
-        img.onload = () => {
-          mainCtx.clearRect(0, 0, 64, 64);
-          if (img.naturalHeight === 32) {
-            mainCtx.drawImage(img, 0, 0);
-            mainCtx.drawImage(mainCanvas, 0, 16, 16, 16, 16, 48, 16, 16);
-            mainCtx.drawImage(mainCanvas, 40, 16, 16, 16, 32, 48, 16, 16);
-          } else {
-            mainCtx.drawImage(img, 0, 0, 64, 64);
-          }
+      window.addEventListener('mouseup', () => {
+        if (is3dPainting) {
+          is3dPainting = false;
+          lastPaintedPixel = { x: -1, y: -1 };
           saveHistoryState();
           sync3D(true);
-          drawOverlay();
           syncToLocalStorage();
-          resolve();
-        };
-        img.src = dataUrl;
+        }
+        isPopupOrbiting = false;
       });
+
+      canvas.addEventListener('wheel', (e) => {
+        e.preventDefault();
+        popupCamSpherical.radius = Math.max(16, Math.min(130, popupCamSpherical.radius + e.deltaY * 0.05));
+        updatePopupCamera();
+      }, { passive: false });
     }
 
-    // Palette & UI
+    document.getElementById('open3dPopupBtn').onclick = () => {
+      document.getElementById('popup3dModal').classList.add('active');
+      initPopup3DViewer();
+      if (popupViewer) {
+        popupViewer.loadSkin(mainCanvas.toDataURL('image/png'));
+        const container = document.getElementById('popup3dViewport');
+        popupViewer.setSize(container.clientWidth, container.clientHeight);
+        updatePopupLayersVisibility();
+      }
+    };
+
+    function closePopupModal() {
+      document.getElementById('popup3dModal').classList.remove('active');
+      sync3D(true);
+      syncToLocalStorage();
+    }
+
+    document.getElementById('closePopupModalBtn').onclick = closePopupModal;
+    document.getElementById('saveAndClosePopupBtn').onclick = closePopupModal;
+
+    document.querySelectorAll('[data-popup-tool]').forEach(btn => {
+      btn.onclick = () => {
+        setTool(btn.dataset.popupTool);
+        document.querySelectorAll('[data-popup-tool]').forEach(b => {
+          b.classList.toggle('active', b.dataset.popupTool === state.tool);
+        });
+      };
+    });
+
+    document.getElementById('popupColorPicker').oninput = (e) => setColor(e.target.value);
+
+    document.getElementById('popupResetCamBtn').onclick = () => {
+      popupCamSpherical = { radius: 52, phi: 1.35, theta: 0 };
+      updatePopupCamera();
+    };
+
+    document.getElementById('popupUndoBtn').onclick = () => document.getElementById('undoBtn').click();
+    document.getElementById('popupBaseLayerToggle').onchange = updatePopupLayersVisibility;
+    document.getElementById('popupOuterLayerToggle').onchange = () => {
+      updatePopupLayersVisibility();
+      document.getElementById('outerLayerToggle').checked = document.getElementById('popupOuterLayerToggle').checked;
+    };
+
+    document.querySelectorAll('.limb-toggle-btn').forEach(btn => {
+      btn.onclick = () => {
+        const limbKey = btn.dataset.popupLimb;
+        if (!popupViewer || !popupViewer.playerObject || !popupViewer.playerObject.skin) return;
+        const skin = popupViewer.playerObject.skin;
+        if (skin[limbKey]) {
+          skin[limbKey].visible = !skin[limbKey].visible;
+          btn.classList.toggle('active', skin[limbKey].visible);
+        }
+      };
+    });
+
+    document.getElementById('popupPoseToggleBtn').onclick = () => {
+      if (!popupViewer || !popupViewer.playerObject || !popupViewer.playerObject.skin) return;
+      const skin = popupViewer.playerObject.skin;
+      state.isTPose = !state.isTPose;
+      if (state.isTPose) {
+        if (skin.rightArm) skin.rightArm.rotation.z = Math.PI / 2;
+        if (skin.leftArm) skin.leftArm.rotation.z = -Math.PI / 2;
+        document.getElementById('popupPoseToggleBtn').textContent = 'Rest';
+      } else {
+        if (skin.rightArm) skin.rightArm.rotation.z = 0;
+        if (skin.leftArm) skin.leftArm.rotation.z = 0;
+        document.getElementById('popupPoseToggleBtn').textContent = 'T-Pose';
+      }
+    };
+
     const MINECRAFT_PALETTE = [
       '#000000', '#2B2B2B', '#555555', '#AAAAAA', '#FFFFFF',
       '#593D29', '#8C5D3D', '#BB8361', '#D49D7E', '#E8C5B0',
@@ -1152,6 +1535,7 @@
       state.color = hex;
       document.getElementById('currentColorSwatch').style.backgroundColor = hex;
       document.getElementById('nativeColorPicker').value = hex;
+      document.getElementById('popupColorPicker').value = hex;
       document.getElementById('hexColorInput').value = hex.toUpperCase();
       if (!state.recentColors.includes(hex)) {
         state.recentColors.unshift(hex);
@@ -1164,6 +1548,9 @@
       state.tool = toolName;
       document.querySelectorAll('.tool-btn').forEach(btn => {
         btn.classList.toggle('active', btn.dataset.tool === toolName);
+      });
+      document.querySelectorAll('[data-popup-tool]').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.popupTool === toolName);
       });
     }
 
@@ -1182,6 +1569,79 @@
     document.getElementById('zoomOutBtn').onclick = () => setZoom(state.zoom - 1);
     document.getElementById('toggleGrid').onchange = (e) => { state.showGrid = e.target.checked; drawOverlay(); };
     document.getElementById('toggleUVGuide').onchange = (e) => { state.showUVGuide = e.target.checked; drawOverlay(); };
+
+    document.getElementById('layerFilterSelect').onchange = (e) => {
+      state.layerFilter = e.target.value;
+      drawOverlay();
+    };
+
+    function blobToDataUrl(blob) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onloadend = () => resolve(reader.result);
+        reader.onerror = reject;
+        reader.readAsDataURL(blob);
+      });
+    }
+
+    async function searchAndLoadSkin(username) {
+      if (!username || !username.trim()) return;
+      username = username.trim();
+      showToast(`Searching skin for "${username}"...`);
+
+      try {
+        const res = await fetch(`https://api.ashcon.app/mojang/v2/user/${encodeURIComponent(username)}`);
+        if (res.ok) {
+          const json = await res.json();
+          if (json.textures && json.textures.skin && json.textures.skin.data) {
+            await applyTextureFromUrl('data:image/png;base64,' + json.textures.skin.data);
+            showToast(`Loaded: ${json.username || username}`);
+            return;
+          }
+        }
+      } catch (e) {}
+
+      try {
+        const res = await fetch(`https://playerdb.co/api/player/minecraft/${encodeURIComponent(username)}`);
+        if (res.ok) {
+          const json = await res.json();
+          if (json.code === 'player.found' && json.data.player.skin_texture) {
+            const proxy = await fetch(`https://api.allorigins.win/raw?url=${encodeURIComponent(json.data.player.skin_texture)}`);
+            if (proxy.ok) {
+              const b = await proxy.blob();
+              const d = await blobToDataUrl(b);
+              await applyTextureFromUrl(d);
+              showToast(`Loaded: ${username}`);
+              return;
+            }
+          }
+        }
+      } catch (e) {}
+
+      showToast(`Player not found: "${username}"`);
+    }
+
+    function applyTextureFromUrl(dataUrl) {
+      return new Promise((resolve) => {
+        const img = new Image();
+        img.onload = () => {
+          mainCtx.clearRect(0, 0, 64, 64);
+          if (img.naturalHeight === 32) {
+            mainCtx.drawImage(img, 0, 0);
+            mainCtx.drawImage(mainCanvas, 0, 16, 16, 16, 16, 48, 16, 16);
+            mainCtx.drawImage(mainCanvas, 40, 16, 16, 16, 32, 48, 16, 16);
+          } else {
+            mainCtx.drawImage(img, 0, 0, 64, 64);
+          }
+          saveHistoryState();
+          sync3D(true);
+          drawOverlay();
+          syncToLocalStorage();
+          resolve();
+        };
+        img.src = dataUrl;
+      });
+    }
 
     document.getElementById('searchSkinBtn').onclick = () => searchAndLoadSkin(document.getElementById('playerSearchInput').value);
     document.getElementById('playerSearchInput').onkeydown = (e) => { if (e.key === 'Enter') searchAndLoadSkin(e.target.value); };
@@ -1204,23 +1664,50 @@
 
     document.getElementById('downloadSkinBtn').onclick = () => {
       const link = document.createElement('a');
-      link.download = 'minecraft_skin.png';
+      link.download = 'skin_texture.png';
       link.href = mainCanvas.toDataURL('image/png');
       link.click();
-      showToast('Skin downloaded (64x64 PNG)!');
+      showToast('Exported PNG (64x64)');
     };
+
+    window.addEventListener('keydown', (e) => {
+      if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT') return;
+
+      if (e.ctrlKey || e.metaKey) {
+        if (e.key.toLowerCase() === 'z') {
+          e.preventDefault();
+          document.getElementById('undoBtn').click();
+        } else if (e.key.toLowerCase() === 'y') {
+          e.preventDefault();
+          document.getElementById('redoBtn').click();
+        }
+        return;
+      }
+
+      const key = e.key.toLowerCase();
+      if (key === 'b') setTool('pencil');
+      else if (key === 'e') setTool('eraser');
+      else if (key === 'g') setTool('bucket');
+      else if (key === 'i') setTool('dropper');
+      else if (key === 'n') setTool('noise');
+      else if (key === 'l') setTool('lighten');
+      else if (key === 'escape') closePopupModal();
+    });
 
     window.addEventListener('resize', () => {
       if (skinViewer && skinViewer.setSize) {
         const c = document.getElementById('skin3d-wrapper');
         skinViewer.setSize(c.clientWidth, c.clientHeight);
       }
+      if (popupViewer && popupViewer.setSize) {
+        const pc = document.getElementById('popup3dViewport');
+        popupViewer.setSize(pc.clientWidth, pc.clientHeight);
+      }
     });
 
     window.addEventListener('DOMContentLoaded', () => {
       setZoom(8);
       initPalette();
-      // Check if localStorage has an active skin from poses.html, otherwise initialize Steve
       const savedSkin = localStorage.getItem('minecraft_active_skin');
       if (savedSkin) {
         applyTextureFromUrl(savedSkin);
