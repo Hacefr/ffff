@@ -13,7 +13,7 @@
       --bg-elevated: #1a1d24;
       --bg-input: #0e1014;
       --border-subtle: #21252f;
-      --border-strong: #2e3340;
+      --border-strong: #323746;
       --accent: #2563eb;
       --accent-hover: #1d4ed8;
       --text-main: #f1f3f7;
@@ -407,7 +407,6 @@
       color: var(--text-main);
     }
 
-    /* Modal Viewport (3D Painter) */
     .modal-backdrop {
       position: fixed;
       inset: 0;
@@ -552,7 +551,6 @@
       <button id="searchSkinBtn">Search</button>
     </div>
 
-    <!-- Header Navigation to Poses Studio -->
     <div class="top-actions">
       <button class="btn" id="open3dPopupBtn">3D Painter</button>
       <a href="poses.html" class="btn btn-primary" id="openPosePageBtn">Poses Studio &gt;</a>
@@ -845,7 +843,6 @@
       return '#' + [r, g, b].map(x => x.toString(16).padStart(2, '0')).join('').toUpperCase();
     }
 
-    // Save skin to local storage so poses.html & animator.html load it immediately
     function syncToLocalStorage() {
       try {
         localStorage.setItem('minecraft_active_skin', mainCanvas.toDataURL('image/png'));
@@ -1319,7 +1316,7 @@
       function getRaycastUV(e) {
         const rect = canvas.getBoundingClientRect();
         mouse.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
-        mouse.y = -((clientY - rect.top) / rect.height) * 2 + 1;
+        mouse.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
         raycaster.setFromCamera(mouse, popupViewer.camera);
 
         const meshes = [];
@@ -1584,11 +1581,57 @@
       });
     }
 
+    /* =========================================================
+       HIGH-RELIABILITY SCHOOL-BYPASS SKIN SEARCH ENGINE
+       ========================================================= */
     async function searchAndLoadSkin(username) {
       if (!username || !username.trim()) return;
       username = username.trim();
-      showToast(`Searching skin for "${username}"...`);
+      showToast(`Loading skin for "${username}"...`);
 
+      // 1. ROUTE 1: Weserv Image CDN + Minotar (Bypasses School Filters)
+      try {
+        const res = await fetch(`https://images.weserv.nl/?url=minotar.net/skin/${encodeURIComponent(username)}&output=png`);
+        if (res.ok) {
+          const blob = await res.blob();
+          if (blob.size > 300) {
+            const dataUrl = await blobToDataUrl(blob);
+            await applyTextureFromUrl(dataUrl);
+            showToast(`Loaded: ${username}`);
+            return;
+          }
+        }
+      } catch (e) {}
+
+      // 2. ROUTE 2: Weserv Image CDN + MC-Heads (Secondary School Bypass)
+      try {
+        const res = await fetch(`https://images.weserv.nl/?url=mc-heads.net/skin/${encodeURIComponent(username)}&output=png`);
+        if (res.ok) {
+          const blob = await res.blob();
+          if (blob.size > 300) {
+            const dataUrl = await blobToDataUrl(blob);
+            await applyTextureFromUrl(dataUrl);
+            showToast(`Loaded: ${username}`);
+            return;
+          }
+        }
+      } catch (e) {}
+
+      // 3. ROUTE 3: Direct Minotar
+      try {
+        const res = await fetch(`https://minotar.net/skin/${encodeURIComponent(username)}`);
+        if (res.ok) {
+          const blob = await res.blob();
+          if (blob.size > 300) {
+            const dataUrl = await blobToDataUrl(blob);
+            await applyTextureFromUrl(dataUrl);
+            showToast(`Loaded: ${username}`);
+            return;
+          }
+        }
+      } catch (e) {}
+
+      // 4. ROUTE 4: Ashcon Mojang API
       try {
         const res = await fetch(`https://api.ashcon.app/mojang/v2/user/${encodeURIComponent(username)}`);
         if (res.ok) {
@@ -1597,23 +1640,6 @@
             await applyTextureFromUrl('data:image/png;base64,' + json.textures.skin.data);
             showToast(`Loaded: ${json.username || username}`);
             return;
-          }
-        }
-      } catch (e) {}
-
-      try {
-        const res = await fetch(`https://playerdb.co/api/player/minecraft/${encodeURIComponent(username)}`);
-        if (res.ok) {
-          const json = await res.json();
-          if (json.code === 'player.found' && json.data.player.skin_texture) {
-            const proxy = await fetch(`https://api.allorigins.win/raw?url=${encodeURIComponent(json.data.player.skin_texture)}`);
-            if (proxy.ok) {
-              const b = await proxy.blob();
-              const d = await blobToDataUrl(b);
-              await applyTextureFromUrl(d);
-              showToast(`Loaded: ${username}`);
-              return;
-            }
           }
         }
       } catch (e) {}
