@@ -1,1 +1,1234 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Minecraft Skin Studio — 2D & 3D Editor</title>
+  <!-- Three.js & SkinView3D Libraries -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/skinview3d@3.2.0/bundles/skinview3d.bundle.js"></script>
+  <style>
+    :root {
+      --bg-dark: #090d16;
+      --bg-panel: #161f30;
+      --bg-surface: #222f46;
+      --bg-input: #0b111c;
+      --accent-green: #10b981;
+      --accent-green-hover: #059669;
+      --accent-blue: #38bdf8;
+      --accent-purple: #a855f7;
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+      --border-color: #2b3952;
+      --danger: #ef4444;
+      --radius: 8px;
+    }
 
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background-color: var(--bg-dark);
+      color: var(--text-main);
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    /* Top Bar */
+    header {
+      background: var(--bg-panel);
+      border-bottom: 1px solid var(--border-color);
+      padding: 8px 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      z-index: 10;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-weight: 700;
+      font-size: 1.05rem;
+      color: #fff;
+    }
+
+    .brand-icon {
+      width: 28px;
+      height: 28px;
+      background: linear-gradient(135deg, #10b981, #059669);
+      border-radius: 4px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 0 10px rgba(16, 185, 129, 0.4);
+    }
+
+    .search-group {
+      display: flex;
+      align-items: center;
+      background: var(--bg-input);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius);
+      padding: 2px 4px;
+      max-width: 360px;
+      width: 100%;
+    }
+
+    .search-group input {
+      background: transparent;
+      border: none;
+      color: #fff;
+      padding: 6px 10px;
+      font-size: 0.82rem;
+      outline: none;
+      width: 100%;
+      user-select: text;
+    }
+
+    .search-group button {
+      background: var(--accent-green);
+      border: none;
+      color: #fff;
+      padding: 6px 12px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-weight: 600;
+      font-size: 0.78rem;
+      white-space: nowrap;
+    }
+
+    .search-group button:hover {
+      background: var(--accent-green-hover);
+    }
+
+    .top-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .btn {
+      background: var(--bg-surface);
+      color: var(--text-main);
+      border: 1px solid var(--border-color);
+      padding: 6px 12px;
+      border-radius: var(--radius);
+      cursor: pointer;
+      font-size: 0.8rem;
+      font-weight: 500;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      text-decoration: none;
+      transition: all 0.15s;
+    }
+
+    .btn:hover {
+      background: #334361;
+      border-color: #485c80;
+    }
+
+    .btn-primary {
+      background: var(--accent-green);
+      border-color: var(--accent-green);
+      color: #fff;
+    }
+
+    .btn-primary:hover {
+      background: var(--accent-green-hover);
+    }
+
+    .btn-pose-ext {
+      background: linear-gradient(135deg, #a855f7, #6366f1);
+      border: 1px solid #c084fc;
+      color: #fff;
+      font-weight: 600;
+      box-shadow: 0 0 12px rgba(168, 85, 247, 0.35);
+    }
+
+    .btn-pose-ext:hover {
+      background: linear-gradient(135deg, #9333ea, #4f46e5);
+    }
+
+    /* Studio Workspace */
+    .workspace {
+      display: flex;
+      flex: 1;
+      height: calc(100vh - 54px);
+      overflow: hidden;
+    }
+
+    .sidebar-left {
+      width: 260px;
+      background: var(--bg-panel);
+      border-right: 1px solid var(--border-color);
+      display: flex;
+      flex-direction: column;
+      overflow-y: auto;
+      padding: 14px;
+      gap: 14px;
+    }
+
+    .panel-box {
+      background: #111827;
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius);
+      padding: 12px;
+    }
+
+    .panel-title {
+      font-size: 0.72rem;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--text-muted);
+      margin-bottom: 8px;
+      font-weight: 700;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .tools-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 6px;
+    }
+
+    .tool-btn {
+      background: var(--bg-surface);
+      border: 1px solid transparent;
+      color: var(--text-main);
+      padding: 8px 4px;
+      border-radius: 6px;
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+      font-size: 0.7rem;
+      font-weight: 500;
+      transition: all 0.15s;
+    }
+
+    .tool-btn:hover {
+      background: #334361;
+    }
+
+    .tool-btn.active {
+      background: rgba(16, 185, 129, 0.2);
+      border-color: var(--accent-green);
+      color: var(--accent-green);
+    }
+
+    .color-preview-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 8px;
+    }
+
+    .color-swatch-large {
+      width: 42px;
+      height: 42px;
+      border-radius: 6px;
+      border: 2px solid #fff;
+      cursor: pointer;
+      position: relative;
+    }
+
+    .color-swatch-large input[type="color"] {
+      position: absolute;
+      opacity: 0;
+      width: 100%;
+      height: 100%;
+      cursor: pointer;
+    }
+
+    .color-inputs {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .color-hex {
+      background: var(--bg-input);
+      border: 1px solid var(--border-color);
+      color: #fff;
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-family: monospace;
+      font-size: 0.8rem;
+      outline: none;
+      user-select: text;
+    }
+
+    .palette-grid {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 4px;
+      margin-top: 6px;
+    }
+
+    .palette-chip {
+      width: 100%;
+      aspect-ratio: 1;
+      border-radius: 4px;
+      cursor: pointer;
+      border: 1px solid rgba(255,255,255,0.1);
+      transition: transform 0.1s;
+    }
+
+    .palette-chip:hover {
+      transform: scale(1.15);
+      border-color: #fff;
+    }
+
+    .editor-center {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      background: #090d16;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .editor-toolbar {
+      background: var(--bg-panel);
+      border-bottom: 1px solid var(--border-color);
+      padding: 6px 14px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      font-size: 0.8rem;
+    }
+
+    .toolbar-group {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .canvas-viewport {
+      flex: 1;
+      overflow: auto;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      background: radial-gradient(circle, #172338 10%, #090d16 90%);
+      padding: 20px;
+    }
+
+    .canvas-stack {
+      position: relative;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.8);
+      border: 2px solid #334361;
+      background-image: 
+        linear-gradient(45deg, #182232 25%, transparent 25%), 
+        linear-gradient(-45deg, #182232 25%, transparent 25%), 
+        linear-gradient(45deg, transparent 75%, #182232 75%), 
+        linear-gradient(-45deg, transparent 75%, #182232 75%);
+      background-size: 16px 16px;
+      background-position: 0 0, 0 8px, 8px -8px, -8px 0px;
+      background-color: #0f1724;
+      cursor: crosshair;
+    }
+
+    #mainCanvas {
+      image-rendering: pixelated;
+      display: block;
+    }
+
+    #overlayCanvas {
+      position: absolute;
+      top: 0;
+      left: 0;
+      pointer-events: none;
+    }
+
+    .status-bar {
+      background: var(--bg-panel);
+      border-top: 1px solid var(--border-color);
+      padding: 4px 14px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      font-family: monospace;
+    }
+
+    .sidebar-right {
+      width: 310px;
+      background: var(--bg-panel);
+      border-left: 1px solid var(--border-color);
+      display: flex;
+      flex-direction: column;
+      padding: 14px;
+      gap: 12px;
+      overflow-y: auto;
+    }
+
+    #skin3d-wrapper {
+      width: 100%;
+      height: 350px;
+      background: radial-gradient(circle, #1e293b 0%, #090d16 100%);
+      border-radius: var(--radius);
+      border: 1px solid var(--border-color);
+      position: relative;
+      overflow: hidden;
+    }
+
+    #skin3d-canvas {
+      width: 100%;
+      height: 100%;
+      outline: none;
+    }
+
+    .view-angles {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 4px;
+    }
+
+    .select-styled {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-color);
+      color: #fff;
+      padding: 6px 8px;
+      border-radius: 6px;
+      font-size: 0.8rem;
+      outline: none;
+      width: 100%;
+      cursor: pointer;
+    }
+
+    .popular-tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px;
+      margin-top: 6px;
+    }
+
+    .tag-btn {
+      background: var(--bg-surface);
+      border: none;
+      color: var(--text-muted);
+      padding: 3px 7px;
+      border-radius: 4px;
+      font-size: 0.72rem;
+      cursor: pointer;
+      transition: all 0.1s;
+    }
+
+    .tag-btn:hover {
+      background: var(--accent-green);
+      color: #fff;
+    }
+
+    .toggle-label {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      cursor: pointer;
+      font-size: 0.78rem;
+      color: var(--text-main);
+    }
+
+    .toast {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      background: #162032;
+      color: #fff;
+      border: 1px solid var(--accent-green);
+      padding: 10px 18px;
+      border-radius: 6px;
+      box-shadow: 0 4px 25px rgba(0,0,0,0.6);
+      font-size: 0.85rem;
+      opacity: 0;
+      transform: translateY(10px);
+      transition: all 0.2s ease;
+      pointer-events: none;
+      z-index: 1000;
+    }
+
+    .toast.show {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Top Header & Searcher -->
+  <header>
+    <div class="brand">
+      <div class="brand-icon">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2">
+          <rect x="3" y="3" width="18" height="18" rx="2"/>
+          <path d="M9 3v18"/><path d="M15 3v18"/><path d="M3 9h18"/><path d="M3 15h18"/>
+        </svg>
+      </div>
+      <span>SkinStudio</span>
+    </div>
+
+    <!-- Live Minecraft Player Skin Searcher -->
+    <div class="search-group">
+      <input type="text" id="playerSearchInput" placeholder="Search player (e.g. Notch, Dream, Technoblade)..." autocomplete="off" spellcheck="false" />
+      <button id="searchSkinBtn">Search</button>
+    </div>
+
+    <!-- Actions & Poses.html Link -->
+    <div class="top-actions">
+      <!-- LINK TO POSES.HTML EXTENSION -->
+      <a href="poses.html" class="btn btn-pose-ext" id="openPosePageBtn" title="Launch 3D Poses & Camera Studio extension">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="5" r="3"/><path d="M6 22V12h12v10"/><path d="M9 12v6"/><path d="M15 12v6"/></svg>
+        3D Poses Creator ↗
+      </a>
+      <input type="file" id="fileInput" accept="image/png" style="display:none;" />
+      <button class="btn" id="uploadSkinBtn" title="Upload 64x64 PNG Skin">Upload</button>
+      <button class="btn btn-primary" id="downloadSkinBtn" title="Download standard 64x64 PNG">Download (.png)</button>
+    </div>
+  </header>
+
+  <!-- Studio Workspace -->
+  <div class="workspace">
+
+    <!-- Left Sidebar: Tools & Palette (Default Skins section REMOVED) -->
+    <aside class="sidebar-left">
+      <div class="panel-box">
+        <div class="panel-title">Tools</div>
+        <div class="tools-grid">
+          <button class="tool-btn active" data-tool="pencil" title="Pencil (B)">Pencil</button>
+          <button class="tool-btn" data-tool="eraser" title="Eraser (E)">Eraser</button>
+          <button class="tool-btn" data-tool="bucket" title="Fill Bucket (G)">Bucket</button>
+          <button class="tool-btn" data-tool="dropper" title="Color Dropper (I)">Picker</button>
+          <button class="tool-btn" data-tool="noise" title="Shade Brush (N)">Shade</button>
+          <button class="tool-btn" data-tool="lighten" title="Lighten (L)">Lighten</button>
+        </div>
+      </div>
+
+      <div class="panel-box">
+        <div class="panel-title">Color Studio</div>
+        <div class="color-preview-row">
+          <div class="color-swatch-large" id="currentColorSwatch" style="background-color: #bb8361;">
+            <input type="color" id="nativeColorPicker" value="#bb8361">
+          </div>
+          <div class="color-inputs">
+            <input type="text" id="hexColorInput" class="color-hex" value="#BB8361" maxlength="7">
+            <div style="font-size: 0.68rem; color: var(--text-muted);">Active Color</div>
+          </div>
+        </div>
+
+        <div class="panel-title" style="margin-top: 10px;">Minecraft Palette</div>
+        <div class="palette-grid" id="presetPalette"></div>
+
+        <div class="panel-title" style="margin-top: 10px;">Recent Colors</div>
+        <div class="palette-grid" id="recentPalette"></div>
+      </div>
+
+      <div class="panel-box">
+        <div class="panel-title">Popular Players</div>
+        <div class="popular-tags">
+          <button class="tag-btn" data-player="Notch">Notch</button>
+          <button class="tag-btn" data-player="Jeb_">Jeb_</button>
+          <button class="tag-btn" data-player="Dream">Dream</button>
+          <button class="tag-btn" data-player="Technoblade">Technoblade</button>
+          <button class="tag-btn" data-player="Mumbo">Mumbo</button>
+          <button class="tag-btn" data-player="DanTDM">DanTDM</button>
+          <button class="tag-btn" data-player="Grian">Grian</button>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Center 2D Pixel Editor -->
+    <main class="editor-center">
+      <div class="editor-toolbar">
+        <div class="toolbar-group">
+          <button class="btn" id="undoBtn">Undo</button>
+          <button class="btn" id="redoBtn">Redo</button>
+          <button class="btn" id="clearCanvasBtn">Clear</button>
+        </div>
+
+        <div class="toolbar-group">
+          <label class="toggle-label">
+            <input type="checkbox" id="toggleGrid" checked> Pixel Grid
+          </label>
+          <label class="toggle-label">
+            <input type="checkbox" id="toggleUVGuide" checked> UV Guides
+          </label>
+          <select class="select-styled" id="layerFilterSelect" style="width: 120px; padding: 3px 6px;">
+            <option value="all">All Layers</option>
+            <option value="base">Base Layer</option>
+            <option value="overlay">Outer Overlay</option>
+          </select>
+        </div>
+
+        <div class="toolbar-group">
+          <button class="btn" id="zoomOutBtn">-</button>
+          <span id="zoomLevelText" style="font-family: monospace; font-size: 0.8rem; min-width: 44px; text-align: center;">800%</span>
+          <button class="btn" id="zoomInBtn">+</button>
+        </div>
+      </div>
+
+      <div class="canvas-viewport" id="canvasViewport">
+        <div class="canvas-stack" id="canvasStack">
+          <canvas id="mainCanvas" width="64" height="64"></canvas>
+          <canvas id="overlayCanvas" width="512" height="512"></canvas>
+        </div>
+      </div>
+
+      <div class="status-bar">
+        <div id="coordStatus">X: 0, Y: 0</div>
+        <div id="partStatus">Torso (Front)</div>
+        <div id="colorStatus">HEX: #000000</div>
+      </div>
+    </main>
+
+    <!-- Right 3D Dock Preview -->
+    <aside class="sidebar-right">
+      <div class="panel-title" style="display:flex; justify-content:space-between;">
+        <span>3D Mini Preview</span>
+        <span style="color:var(--accent-green); font-size:0.65rem;">LIVE SYNC</span>
+      </div>
+      
+      <div id="skin3d-wrapper">
+        <canvas id="skin3d-canvas"></canvas>
+      </div>
+
+      <div class="panel-box">
+        <div class="panel-title">Model Camera & Poses</div>
+        <div class="view-angles">
+          <button class="btn" data-angle="front">Front</button>
+          <button class="btn" data-angle="back">Back</button>
+          <button class="btn" data-angle="left">Left</button>
+          <button class="btn" data-angle="iso">3D Iso</button>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 8px;">
+          <div>
+            <div style="font-size: 0.7rem; color: var(--text-muted); margin-bottom: 4px;">Animation</div>
+            <select class="select-styled" id="animSelect">
+              <option value="idle">Idle</option>
+              <option value="walk">Walk</option>
+              <option value="run">Run</option>
+              <option value="none">Pause Pose</option>
+            </select>
+          </div>
+          <div>
+            <div style="font-size: 0.7rem; color: var(--text-muted); margin-bottom: 4px;">Arm Shape</div>
+            <select class="select-styled" id="modelShapeSelect">
+              <option value="default">Steve (4px)</option>
+              <option value="slim">Alex (3px)</option>
+            </select>
+          </div>
+        </div>
+
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 10px;">
+          <label class="toggle-label">
+            <input type="checkbox" id="autoRotateToggle"> Auto Rotate
+          </label>
+          <label class="toggle-label">
+            <input type="checkbox" id="outerLayerToggle" checked> Outer Layer
+          </label>
+        </div>
+      </div>
+    </aside>
+
+  </div>
+
+  <div class="toast" id="toast">Notification</div>
+
+  <script>
+    const state = {
+      tool: 'pencil',
+      color: '#bb8361',
+      zoom: 8,
+      isDrawing: false,
+      lastX: -1,
+      lastY: -1,
+      showGrid: true,
+      showUVGuide: true,
+      layerFilter: 'all',
+      history: [],
+      historyIndex: -1,
+      recentColors: ['#bb8361', '#452b1b', '#00a8a8', '#2c3577', '#ffffff', '#000000']
+    };
+
+    const SKIN_PARTS = [
+      { name: 'Head Top', layer: 'base', x: 8, y: 0, w: 8, h: 8, color: '#38bdf8' },
+      { name: 'Head Bottom', layer: 'base', x: 16, y: 0, w: 8, h: 8, color: '#38bdf8' },
+      { name: 'Head Right', layer: 'base', x: 0, y: 8, w: 8, h: 8, color: '#38bdf8' },
+      { name: 'Head Front', layer: 'base', x: 8, y: 8, w: 8, h: 8, color: '#38bdf8' },
+      { name: 'Head Left', layer: 'base', x: 16, y: 8, w: 8, h: 8, color: '#38bdf8' },
+      { name: 'Head Back', layer: 'base', x: 24, y: 8, w: 8, h: 8, color: '#38bdf8' },
+      { name: 'Hat Front', layer: 'overlay', x: 40, y: 8, w: 8, h: 8, color: '#818cf8' },
+      { name: 'Torso Front', layer: 'base', x: 20, y: 20, w: 8, h: 12, color: '#4ade80' },
+      { name: 'Jacket Front', layer: 'overlay', x: 20, y: 36, w: 8, h: 12, color: '#34d399' },
+      { name: 'R Arm Front', layer: 'base', x: 44, y: 20, w: 4, h: 12, color: '#facc15' },
+      { name: 'L Arm Front', layer: 'base', x: 36, y: 52, w: 4, h: 12, color: '#c084fc' },
+      { name: 'R Leg Front', layer: 'base', x: 4, y: 20, w: 4, h: 12, color: '#fb923c' },
+      { name: 'L Leg Front', layer: 'base', x: 20, y: 52, w: 4, h: 12, color: '#f472b6' }
+    ];
+
+    const mainCanvas = document.getElementById('mainCanvas');
+    const mainCtx = mainCanvas.getContext('2d', { willReadFrequently: true });
+    const overlayCanvas = document.getElementById('overlayCanvas');
+    const overlayCtx = overlayCanvas.getContext('2d');
+    const canvasStack = document.getElementById('canvasStack');
+    let skinViewer = null;
+
+    function showToast(msg, isError = false) {
+      const toast = document.getElementById('toast');
+      toast.textContent = msg;
+      toast.style.borderColor = isError ? 'var(--danger)' : 'var(--accent-green)';
+      toast.classList.add('show');
+      setTimeout(() => toast.classList.remove('show'), 3000);
+    }
+
+    function hexToRgb(hex) {
+      hex = hex.replace('#', '');
+      if (hex.length === 3) hex = hex.split('').map(c => c + c).join('');
+      const num = parseInt(hex, 16);
+      return { r: (num >> 16) & 255, g: (num >> 8) & 255, b: num & 255 };
+    }
+
+    function rgbToHex(r, g, b) {
+      return '#' + [r, g, b].map(x => x.toString(16).padStart(2, '0')).join('').toUpperCase();
+    }
+
+    // Save to LocalStorage so poses.html receives this skin immediately
+    function syncToLocalStorage() {
+      try {
+        localStorage.setItem('minecraft_active_skin', mainCanvas.toDataURL());
+      } catch (e) {}
+    }
+
+    document.getElementById('openPosePageBtn').onclick = () => {
+      syncToLocalStorage();
+    };
+
+    function setZoom(newZoom) {
+      state.zoom = Math.max(4, Math.min(16, newZoom));
+      const size = 64 * state.zoom;
+      mainCanvas.style.width = size + 'px';
+      mainCanvas.style.height = size + 'px';
+      overlayCanvas.width = size;
+      overlayCanvas.height = size;
+      overlayCanvas.style.width = size + 'px';
+      overlayCanvas.style.height = size + 'px';
+      canvasStack.style.width = size + 'px';
+      canvasStack.style.height = size + 'px';
+      document.getElementById('zoomLevelText').textContent = (state.zoom * 100) + '%';
+      drawOverlay();
+    }
+
+    function fillRect(x, y, w, h, color) {
+      mainCtx.fillStyle = color;
+      mainCtx.fillRect(x, y, w, h);
+    }
+
+    function initSteveBase() {
+      mainCtx.clearRect(0, 0, 64, 64);
+      fillRect(0, 0, 32, 16, '#452b1b');
+      fillRect(8, 8, 8, 8, '#bb8361');
+      fillRect(8, 8, 8, 2, '#452b1b');
+      fillRect(9, 10, 1, 1, '#452b1b');
+      fillRect(14, 10, 1, 1, '#452b1b');
+      fillRect(10, 12, 1, 1, '#fff');
+      fillRect(11, 12, 1, 1, '#2e389e');
+      fillRect(13, 12, 1, 1, '#2e389e');
+      fillRect(14, 12, 1, 1, '#fff');
+      fillRect(11, 13, 2, 1, '#9c684a');
+      fillRect(10, 14, 4, 1, '#472619');
+      fillRect(16, 16, 24, 16, '#00a8a8');
+      fillRect(20, 20, 8, 2, '#bb8361');
+      fillRect(40, 16, 16, 4, '#00a8a8');
+      fillRect(40, 20, 16, 12, '#bb8361');
+      fillRect(32, 48, 16, 4, '#00a8a8');
+      fillRect(32, 52, 16, 12, '#bb8361');
+      fillRect(0, 16, 16, 12, '#2c3577');
+      fillRect(0, 28, 16, 4, '#424242');
+      fillRect(16, 48, 16, 12, '#2c3577');
+      fillRect(16, 60, 16, 4, '#424242');
+      saveHistoryState();
+      sync3D(true);
+      drawOverlay();
+    }
+
+    function applyPixel(x, y) {
+      if (x < 0 || x >= 64 || y < 0 || y >= 64) return;
+      if (state.tool === 'pencil') {
+        mainCtx.clearRect(x, y, 1, 1);
+        mainCtx.fillStyle = state.color;
+        mainCtx.fillRect(x, y, 1, 1);
+      } else if (state.tool === 'eraser') {
+        mainCtx.clearRect(x, y, 1, 1);
+      } else if (state.tool === 'noise') {
+        const rgb = hexToRgb(state.color);
+        const delta = Math.floor((Math.random() - 0.5) * 32);
+        const r = Math.min(255, Math.max(0, rgb.r + delta));
+        const g = Math.min(255, Math.max(0, rgb.g + delta));
+        const b = Math.min(255, Math.max(0, rgb.b + delta));
+        mainCtx.clearRect(x, y, 1, 1);
+        mainCtx.fillStyle = `rgb(${r},${g},${b})`;
+        mainCtx.fillRect(x, y, 1, 1);
+      } else if (state.tool === 'lighten') {
+        const p = mainCtx.getImageData(x, y, 1, 1).data;
+        if (p[3] === 0) return;
+        const r = Math.min(255, p[0] + 18);
+        const g = Math.min(255, p[1] + 18);
+        const b = Math.min(255, p[2] + 18);
+        mainCtx.clearRect(x, y, 1, 1);
+        mainCtx.fillStyle = `rgba(${r},${g},${b},${p[3]/255})`;
+        mainCtx.fillRect(x, y, 1, 1);
+      }
+    }
+
+    function drawLine(x0, y0, x1, y1) {
+      const dx = Math.abs(x1 - x0);
+      const dy = Math.abs(y1 - y0);
+      const sx = (x0 < x1) ? 1 : -1;
+      const sy = (y0 < y1) ? 1 : -1;
+      let err = dx - dy;
+      while (true) {
+        applyPixel(x0, y0);
+        if (x0 === x1 && y0 === y1) break;
+        const e2 = 2 * err;
+        if (e2 > -dy) { err -= dy; x0 += sx; }
+        if (e2 < dx) { err += dx; y0 += sy; }
+      }
+    }
+
+    function floodFill(startX, startY, fillHex) {
+      const imgData = mainCtx.getImageData(0, 0, 64, 64);
+      const data = imgData.data;
+      const targetIdx = (startY * 64 + startX) * 4;
+      const targetR = data[targetIdx];
+      const targetG = data[targetIdx + 1];
+      const targetB = data[targetIdx + 2];
+      const targetA = data[targetIdx + 3];
+      const fillRgb = hexToRgb(fillHex);
+      if (targetR === fillRgb.r && targetG === fillRgb.g && targetB === fillRgb.b && targetA === 255) return;
+
+      const queue = [[startX, startY]];
+      const visited = new Uint8Array(64 * 64);
+      visited[startY * 64 + startX] = 1;
+
+      while (queue.length > 0) {
+        const [cx, cy] = queue.pop();
+        const idx = (cy * 64 + cx) * 4;
+        data[idx] = fillRgb.r;
+        data[idx + 1] = fillRgb.g;
+        data[idx + 2] = fillRgb.b;
+        data[idx + 3] = 255;
+
+        const neighbors = [[cx+1, cy], [cx-1, cy], [cx, cy+1], [cx, cy-1]];
+        for (const [nx, ny] of neighbors) {
+          if (nx >= 0 && nx < 64 && ny >= 0 && ny < 64) {
+            const nPos = ny * 64 + nx;
+            if (!visited[nPos]) {
+              visited[nPos] = 1;
+              const nIdx = nPos * 4;
+              if (data[nIdx] === targetR && data[nIdx+1] === targetG &&
+                  data[nIdx+2] === targetB && data[nIdx+3] === targetA) {
+                queue.push([nx, ny]);
+              }
+            }
+          }
+        }
+      }
+      mainCtx.putImageData(imgData, 0, 0);
+      saveHistoryState();
+      sync3D(true);
+      drawOverlay();
+    }
+
+    let hoveredPixel = { x: -1, y: -1 };
+
+    function drawOverlay() {
+      const w = overlayCanvas.width;
+      const h = overlayCanvas.height;
+      const scale = state.zoom;
+      overlayCtx.clearRect(0, 0, w, h);
+
+      if (state.showGrid) {
+        overlayCtx.strokeStyle = 'rgba(255, 255, 255, 0.08)';
+        overlayCtx.lineWidth = 1;
+        overlayCtx.beginPath();
+        for (let i = 0; i <= 64; i++) {
+          overlayCtx.moveTo(i * scale, 0);
+          overlayCtx.lineTo(i * scale, h);
+          overlayCtx.moveTo(0, i * scale);
+          overlayCtx.lineTo(w, i * scale);
+        }
+        overlayCtx.stroke();
+      }
+
+      if (state.showUVGuide) {
+        SKIN_PARTS.forEach(part => {
+          overlayCtx.strokeStyle = part.color;
+          overlayCtx.lineWidth = 1.5;
+          overlayCtx.strokeRect(part.x * scale + 0.5, part.y * scale + 0.5, part.w * scale - 1, part.h * scale - 1);
+        });
+      }
+
+      if (hoveredPixel.x >= 0 && hoveredPixel.x < 64 && hoveredPixel.y >= 0 && hoveredPixel.y < 64) {
+        overlayCtx.strokeStyle = '#ffffff';
+        overlayCtx.lineWidth = 2;
+        overlayCtx.strokeRect(hoveredPixel.x * scale, hoveredPixel.y * scale, scale, scale);
+      }
+    }
+
+    function getCanvasCoords(e) {
+      const rect = mainCanvas.getBoundingClientRect();
+      const x = Math.floor((e.clientX - rect.left) / (rect.width / 64));
+      const y = Math.floor((e.clientY - rect.top) / (rect.height / 64));
+      return { x: Math.max(0, Math.min(63, x)), y: Math.max(0, Math.min(63, y)) };
+    }
+
+    canvasStack.addEventListener('mousedown', (e) => {
+      if (e.button !== 0) return;
+      const { x, y } = getCanvasCoords(e);
+      state.isDrawing = true;
+      state.lastX = x;
+      state.lastY = y;
+      if (state.tool === 'dropper') {
+        const p = mainCtx.getImageData(x, y, 1, 1).data;
+        if (p[3] > 0) {
+          setColor(rgbToHex(p[0], p[1], p[2]));
+          setTool('pencil');
+        }
+      } else if (state.tool === 'bucket') {
+        floodFill(x, y, state.color);
+      } else {
+        applyPixel(x, y);
+        sync3D(false);
+      }
+      drawOverlay();
+    });
+
+    window.addEventListener('mousemove', (e) => {
+      const { x, y } = getCanvasCoords(e);
+      hoveredPixel = { x, y };
+
+      document.getElementById('coordStatus').textContent = `X: ${x}, Y: ${y}`;
+      const part = SKIN_PARTS.find(p => x >= p.x && x < p.x + p.w && y >= p.y && y < p.y + p.h);
+      document.getElementById('partStatus').textContent = part ? `${part.name}` : 'Transparent / Empty';
+
+      const p = mainCtx.getImageData(x, y, 1, 1).data;
+      document.getElementById('colorStatus').textContent = p[3] > 0 ? `HEX: ${rgbToHex(p[0], p[1], p[2])}` : 'HEX: Transparent';
+
+      if (state.isDrawing) {
+        drawLine(state.lastX, state.lastY, x, y);
+        state.lastX = x;
+        state.lastY = y;
+        sync3D(false);
+      }
+      drawOverlay();
+    });
+
+    window.addEventListener('mouseup', () => {
+      if (state.isDrawing) {
+        state.isDrawing = false;
+        state.lastX = -1;
+        state.lastY = -1;
+        saveHistoryState();
+        sync3D(true);
+        syncToLocalStorage();
+      }
+    });
+
+    function saveHistoryState() {
+      state.history = state.history.slice(0, state.historyIndex + 1);
+      state.history.push(mainCtx.getImageData(0, 0, 64, 64));
+      if (state.history.length > 30) state.history.shift();
+      state.historyIndex = state.history.length - 1;
+      document.getElementById('undoBtn').disabled = state.historyIndex <= 0;
+      document.getElementById('redoBtn').disabled = state.historyIndex >= state.history.length - 1;
+    }
+
+    document.getElementById('undoBtn').onclick = () => {
+      if (state.historyIndex > 0) {
+        state.historyIndex--;
+        mainCtx.putImageData(state.history[state.historyIndex], 0, 0);
+        sync3D(true);
+        drawOverlay();
+        syncToLocalStorage();
+      }
+    };
+
+    document.getElementById('redoBtn').onclick = () => {
+      if (state.historyIndex < state.history.length - 1) {
+        state.historyIndex++;
+        mainCtx.putImageData(state.history[state.historyIndex], 0, 0);
+        sync3D(true);
+        drawOverlay();
+        syncToLocalStorage();
+      }
+    };
+
+    document.getElementById('clearCanvasBtn').onclick = () => {
+      if (confirm('Clear the entire skin texture?')) {
+        mainCtx.clearRect(0, 0, 64, 64);
+        saveHistoryState();
+        sync3D(true);
+        drawOverlay();
+        syncToLocalStorage();
+      }
+    };
+
+    let syncThrottle = null;
+    function sync3D(immediate = false) {
+      if (!skinViewer) return;
+      if (immediate) {
+        clearTimeout(syncThrottle);
+        syncThrottle = null;
+        skinViewer.loadSkin(mainCanvas.toDataURL());
+        return;
+      }
+      if (!syncThrottle) {
+        syncThrottle = setTimeout(() => {
+          skinViewer.loadSkin(mainCanvas.toDataURL());
+          syncThrottle = null;
+        }, 50);
+      }
+    }
+
+    function init3DDock() {
+      const container = document.getElementById('skin3d-wrapper');
+      const canvas = document.getElementById('skin3d-canvas');
+      try {
+        skinViewer = new skinview3d.SkinViewer({
+          canvas: canvas,
+          width: container.clientWidth || 300,
+          height: 350,
+          skin: mainCanvas.toDataURL()
+        });
+        skinViewer.camera.position.set(0, 15, 45);
+        skinViewer.zoom = 0.85;
+        if (typeof skinview3d.createOrbitControls === 'function') {
+          skinview3d.createOrbitControls(skinViewer);
+        }
+        skinViewer.animation = new skinview3d.WalkingAnimation();
+      } catch (e) {
+        console.warn("Dock 3D init error:", e);
+      }
+    }
+
+    // Bulletproof Searcher
+    function blobToDataUrl(blob) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onloadend = () => resolve(reader.result);
+        reader.onerror = reject;
+        reader.readAsDataURL(blob);
+      });
+    }
+
+    async function searchAndLoadSkin(username) {
+      if (!username || !username.trim()) return;
+      username = username.trim();
+      showToast(`Searching skin for "${username}"...`);
+
+      // 1. Ashcon API
+      try {
+        const res = await fetch(`https://api.ashcon.app/mojang/v2/user/${encodeURIComponent(username)}`);
+        if (res.ok) {
+          const json = await res.json();
+          if (json.textures && json.textures.skin && json.textures.skin.data) {
+            await applyTextureFromUrl('data:image/png;base64,' + json.textures.skin.data);
+            showToast(`Loaded ${json.username || username}'s skin!`);
+            return;
+          }
+        }
+      } catch (e) {}
+
+      // 2. PlayerDB + Proxy
+      try {
+        const res = await fetch(`https://playerdb.co/api/player/minecraft/${encodeURIComponent(username)}`);
+        if (res.ok) {
+          const json = await res.json();
+          if (json.code === 'player.found' && json.data.player.skin_texture) {
+            const proxy = await fetch(`https://api.allorigins.win/raw?url=${encodeURIComponent(json.data.player.skin_texture)}`);
+            if (proxy.ok) {
+              const b = await proxy.blob();
+              const d = await blobToDataUrl(b);
+              await applyTextureFromUrl(d);
+              showToast(`Loaded ${username}'s skin!`);
+              return;
+            }
+          }
+        }
+      } catch (e) {}
+
+      // 3. MC-Heads Proxy
+      try {
+        const proxy = await fetch(`https://api.allorigins.win/raw?url=${encodeURIComponent('https://mc-heads.net/skin/' + username)}`);
+        if (proxy.ok) {
+          const b = await proxy.blob();
+          if (b.size > 200) {
+            const d = await blobToDataUrl(b);
+            await applyTextureFromUrl(d);
+            showToast(`Loaded ${username}'s skin!`);
+            return;
+          }
+        }
+      } catch (e) {}
+
+      showToast(`Could not find skin for "${username}". Check spelling.`, true);
+    }
+
+    function applyTextureFromUrl(dataUrl) {
+      return new Promise((resolve) => {
+        const img = new Image();
+        img.onload = () => {
+          mainCtx.clearRect(0, 0, 64, 64);
+          if (img.naturalHeight === 32) {
+            mainCtx.drawImage(img, 0, 0);
+            mainCtx.drawImage(mainCanvas, 0, 16, 16, 16, 16, 48, 16, 16);
+            mainCtx.drawImage(mainCanvas, 40, 16, 16, 16, 32, 48, 16, 16);
+          } else {
+            mainCtx.drawImage(img, 0, 0, 64, 64);
+          }
+          saveHistoryState();
+          sync3D(true);
+          drawOverlay();
+          syncToLocalStorage();
+          resolve();
+        };
+        img.src = dataUrl;
+      });
+    }
+
+    // Palette & UI
+    const MINECRAFT_PALETTE = [
+      '#000000', '#2B2B2B', '#555555', '#AAAAAA', '#FFFFFF',
+      '#593D29', '#8C5D3D', '#BB8361', '#D49D7E', '#E8C5B0',
+      '#B02E26', '#F9801D', '#FED83D', '#80C71F', '#5E7C16',
+      '#169C9C', '#3AB3DA', '#3C44AA', '#8932B8', '#C74EBD'
+    ];
+
+    function initPalette() {
+      const presetContainer = document.getElementById('presetPalette');
+      presetContainer.innerHTML = '';
+      MINECRAFT_PALETTE.forEach(color => {
+        const chip = document.createElement('div');
+        chip.className = 'palette-chip';
+        chip.style.backgroundColor = color;
+        chip.onclick = () => setColor(color);
+        presetContainer.appendChild(chip);
+      });
+      updateRecentPalette();
+    }
+
+    function updateRecentPalette() {
+      const recentContainer = document.getElementById('recentPalette');
+      recentContainer.innerHTML = '';
+      state.recentColors.forEach(color => {
+        const chip = document.createElement('div');
+        chip.className = 'palette-chip';
+        chip.style.backgroundColor = color;
+        chip.onclick = () => setColor(color);
+        recentContainer.appendChild(chip);
+      });
+    }
+
+    function setColor(hex) {
+      state.color = hex;
+      document.getElementById('currentColorSwatch').style.backgroundColor = hex;
+      document.getElementById('nativeColorPicker').value = hex;
+      document.getElementById('hexColorInput').value = hex.toUpperCase();
+      if (!state.recentColors.includes(hex)) {
+        state.recentColors.unshift(hex);
+        if (state.recentColors.length > 14) state.recentColors.pop();
+        updateRecentPalette();
+      }
+    }
+
+    function setTool(toolName) {
+      state.tool = toolName;
+      document.querySelectorAll('.tool-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.tool === toolName);
+      });
+    }
+
+    document.querySelectorAll('.tool-btn').forEach(btn => {
+      btn.onclick = () => setTool(btn.dataset.tool);
+    });
+
+    document.getElementById('nativeColorPicker').oninput = (e) => setColor(e.target.value);
+    document.getElementById('hexColorInput').onchange = (e) => {
+      let val = e.target.value;
+      if (!val.startsWith('#')) val = '#' + val;
+      if (/^#[0-9A-F]{6}$/i.test(val)) setColor(val);
+    };
+
+    document.getElementById('zoomInBtn').onclick = () => setZoom(state.zoom + 1);
+    document.getElementById('zoomOutBtn').onclick = () => setZoom(state.zoom - 1);
+    document.getElementById('toggleGrid').onchange = (e) => { state.showGrid = e.target.checked; drawOverlay(); };
+    document.getElementById('toggleUVGuide').onchange = (e) => { state.showUVGuide = e.target.checked; drawOverlay(); };
+
+    document.getElementById('searchSkinBtn').onclick = () => searchAndLoadSkin(document.getElementById('playerSearchInput').value);
+    document.getElementById('playerSearchInput').onkeydown = (e) => { if (e.key === 'Enter') searchAndLoadSkin(e.target.value); };
+
+    document.querySelectorAll('.tag-btn').forEach(btn => {
+      btn.onclick = () => {
+        document.getElementById('playerSearchInput').value = btn.dataset.player;
+        searchAndLoadSkin(btn.dataset.player);
+      };
+    });
+
+    document.getElementById('uploadSkinBtn').onclick = () => document.getElementById('fileInput').click();
+    document.getElementById('fileInput').onchange = (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = (ev) => applyTextureFromUrl(ev.target.result);
+      reader.readAsDataURL(file);
+    };
+
+    document.getElementById('downloadSkinBtn').onclick = () => {
+      const link = document.createElement('a');
+      link.download = 'minecraft_skin.png';
+      link.href = mainCanvas.toDataURL('image/png');
+      link.click();
+      showToast('Skin downloaded (64x64 PNG)!');
+    };
+
+    window.addEventListener('resize', () => {
+      if (skinViewer && skinViewer.setSize) {
+        const c = document.getElementById('skin3d-wrapper');
+        skinViewer.setSize(c.clientWidth, c.clientHeight);
+      }
+    });
+
+    window.addEventListener('DOMContentLoaded', () => {
+      setZoom(8);
+      initPalette();
+      // Check if localStorage has an active skin from poses.html, otherwise initialize Steve
+      const savedSkin = localStorage.getItem('minecraft_active_skin');
+      if (savedSkin) {
+        applyTextureFromUrl(savedSkin);
+      } else {
+        initSteveBase();
+      }
+      init3DDock();
+    });
+  </script>
+</body>
+</html>
