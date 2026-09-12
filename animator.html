@@ -260,7 +260,6 @@
       color: #fff;
     }
 
-    /* Timeline Dock */
     .timeline-dock {
       height: 220px;
       background: var(--bg-panel);
@@ -372,6 +371,7 @@
   <header>
     <div class="brand">Moon Animator — Timeline Studio</div>
 
+    <!-- Live School-Bypass Player Search -->
     <div class="search-group">
       <input type="text" id="playerSearchInput" placeholder="Load skin by username..." autocomplete="off" spellcheck="false" />
       <button id="searchSkinBtn">Search</button>
@@ -393,6 +393,7 @@
       <input type="file" id="importJsonInput" accept=".json" style="display:none;" />
       <button class="btn" id="importJsonBtn">Import JSON</button>
 
+      <!-- Suite Navigation -->
       <a href="poses.html" class="btn">&lt; Poses Studio</a>
       <a href="index.html" class="btn">&lt; Skin Studio</a>
     </div>
@@ -431,7 +432,6 @@
   <div class="timeline-dock">
     <div class="timeline-toolbar">
       <div style="display:flex; align-items:center; gap:4px;">
-        <!-- Undo & Redo Controls -->
         <button class="btn" id="undoBtn" disabled title="Undo (Ctrl+Z)">Undo</button>
         <button class="btn" id="redoBtn" disabled title="Redo (Ctrl+Y)">Redo</button>
 
@@ -558,6 +558,95 @@
       t.classList.add('show');
       setTimeout(() => t.classList.remove('show'), 2200);
     }
+
+    function blobToDataUrl(blob) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onloadend = () => resolve(reader.result);
+        reader.onerror = reject;
+        reader.readAsDataURL(blob);
+      });
+    }
+
+    /* =========================================================
+       HIGH-RELIABILITY SCHOOL-BYPASS SKIN SEARCH ENGINE
+       ========================================================= */
+    async function searchAndLoadSkin(username) {
+      if (!username || !username.trim()) return;
+      username = username.trim();
+      showToast(`Loading skin for "${username}"...`);
+
+      // 1. ROUTE 1: Weserv Image CDN + Minotar (Bypasses School Filters)
+      try {
+        const res = await fetch(`https://images.weserv.nl/?url=minotar.net/skin/${encodeURIComponent(username)}&output=png`);
+        if (res.ok) {
+          const blob = await res.blob();
+          if (blob.size > 300) {
+            const dataUrl = await blobToDataUrl(blob);
+            poseViewer.loadSkin(dataUrl);
+            updateCharacterMaterials();
+            try { localStorage.setItem('minecraft_active_skin', dataUrl); } catch(e) {}
+            showToast(`Loaded: ${username}`);
+            return;
+          }
+        }
+      } catch (e) {}
+
+      // 2. ROUTE 2: Weserv Image CDN + MC-Heads
+      try {
+        const res = await fetch(`https://images.weserv.nl/?url=mc-heads.net/skin/${encodeURIComponent(username)}&output=png`);
+        if (res.ok) {
+          const blob = await res.blob();
+          if (blob.size > 300) {
+            const dataUrl = await blobToDataUrl(blob);
+            poseViewer.loadSkin(dataUrl);
+            updateCharacterMaterials();
+            try { localStorage.setItem('minecraft_active_skin', dataUrl); } catch(e) {}
+            showToast(`Loaded: ${username}`);
+            return;
+          }
+        }
+      } catch (e) {}
+
+      // 3. ROUTE 3: Direct Minotar
+      try {
+        const res = await fetch(`https://minotar.net/skin/${encodeURIComponent(username)}`);
+        if (res.ok) {
+          const blob = await res.blob();
+          if (blob.size > 300) {
+            const dataUrl = await blobToDataUrl(blob);
+            poseViewer.loadSkin(dataUrl);
+            updateCharacterMaterials();
+            try { localStorage.setItem('minecraft_active_skin', dataUrl); } catch(e) {}
+            showToast(`Loaded: ${username}`);
+            return;
+          }
+        }
+      } catch (e) {}
+
+      // 4. ROUTE 4: Ashcon Mojang API
+      try {
+        const res = await fetch(`https://api.ashcon.app/mojang/v2/user/${encodeURIComponent(username)}`);
+        if (res.ok) {
+          const json = await res.json();
+          if (json.textures && json.textures.skin && json.textures.skin.data) {
+            const dataUrl = 'data:image/png;base64,' + json.textures.skin.data;
+            poseViewer.loadSkin(dataUrl);
+            updateCharacterMaterials();
+            try { localStorage.setItem('minecraft_active_skin', dataUrl); } catch(e) {}
+            showToast(`Loaded: ${json.username || username}`);
+            return;
+          }
+        }
+      } catch (e) {}
+
+      showToast(`Player not found: "${username}"`);
+    }
+
+    document.getElementById('searchSkinBtn').onclick = () => searchAndLoadSkin(document.getElementById('playerSearchInput').value);
+    document.getElementById('playerSearchInput').onkeydown = (e) => {
+      if (e.key === 'Enter') searchAndLoadSkin(e.target.value);
+    };
 
     /* =========================================================
        UNDO / REDO HISTORY ENGINE (Ctrl+Z / Ctrl+Y)
@@ -941,6 +1030,9 @@
       };
     }
 
+    /* =========================================================
+       PRESET ANIMATIONS (ACCURATE MINECRAFT SKELETAL ANGLES)
+       ========================================================= */
     function loadPresetAnimation(name) {
       TRACK_KEYS.forEach(k => { animState.tracks[k] = []; });
 
@@ -1081,7 +1173,7 @@
       setup3DViewportInteraction(interactionLayer);
       selectLimb('head');
 
-      // Stand in natural rest pose
+      // Natural Upright Rest Pose on startup
       TRACK_KEYS.forEach(k => {
         const obj = getLimbObject(k);
         if (obj) {
@@ -1677,7 +1769,7 @@
     window.addEventListener('keydown', (e) => {
       if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT') return;
 
-      // Undo & Redo Shortcuts
+      // History Hotkeys (Ctrl+Z / Ctrl+Y)
       if (e.ctrlKey || e.metaKey) {
         if (e.key.toLowerCase() === 'z') {
           e.preventDefault();
@@ -1727,7 +1819,6 @@
       if (k in keysDown) keysDown[k] = false;
     });
 
-    // JSON Export & Import
     document.getElementById('exportJsonBtn').onclick = () => {
       const exportData = {
         name: "Minecraft_Moon_Animation",
@@ -1771,7 +1862,6 @@
       reader.readAsText(file);
     };
 
-    // Skin Loader & Searcher
     document.getElementById('uploadSkinBtn').onclick = () => document.getElementById('skinFileInput').click();
     document.getElementById('skinFileInput').onchange = (e) => {
       const file = e.target.files[0];
@@ -1783,31 +1873,6 @@
         showToast('Skin loaded');
       };
       reader.readAsDataURL(file);
-    };
-
-    async function searchAndLoadSkin(username) {
-      if (!username || !username.trim()) return;
-      username = username.trim();
-      showToast(`Searching skin for "${username}"...`);
-
-      try {
-        const res = await fetch(`https://api.ashcon.app/mojang/v2/user/${encodeURIComponent(username)}`);
-        if (res.ok) {
-          const json = await res.json();
-          if (json.textures && json.textures.skin && json.textures.skin.data) {
-            poseViewer.loadSkin('data:image/png;base64,' + json.textures.skin.data);
-            updateCharacterMaterials();
-            showToast(`Loaded: ${json.username || username}`);
-            return;
-          }
-        }
-      } catch (e) {}
-      showToast(`Player not found: "${username}"`);
-    }
-
-    document.getElementById('searchSkinBtn').onclick = () => searchAndLoadSkin(document.getElementById('playerSearchInput').value);
-    document.getElementById('playerSearchInput').onkeydown = (e) => {
-      if (e.key === 'Enter') searchAndLoadSkin(e.target.value);
     };
 
     window.addEventListener('resize', () => {
