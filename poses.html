@@ -1,0 +1,1149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Minecraft 3D Poses Studio — Moon Animator Viewport Rig</title>
+  <!-- Three.js (r156) & SkinView3D Matching Engine -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/0.156.0/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/skinview3d@3.2.0/bundles/skinview3d.bundle.js"></script>
+  <style>
+    :root {
+      --bg-dark: #090d16;
+      --bg-panel: #111724;
+      --bg-surface: #1a2336;
+      --bg-input: #080c14;
+      --moon-orange: #f59e0b;
+      --moon-orange-dark: #d97706;
+      --accent-blue: #38bdf8;
+      --accent-green: #10b981;
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+      --border-color: #243047;
+      --radius: 6px;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background-color: var(--bg-dark);
+      color: var(--text-main);
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    /* Top Bar */
+    header {
+      background: var(--bg-panel);
+      border-bottom: 1px solid var(--border-color);
+      padding: 8px 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      z-index: 20;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-weight: 700;
+      font-size: 1.05rem;
+      color: #fff;
+    }
+
+    .brand-badge {
+      background: linear-gradient(135deg, var(--moon-orange), var(--moon-orange-dark));
+      color: #000;
+      font-size: 0.72rem;
+      font-weight: 800;
+      padding: 3px 8px;
+      border-radius: 4px;
+      letter-spacing: 0.04em;
+    }
+
+    .top-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .btn {
+      background: var(--bg-surface);
+      color: var(--text-main);
+      border: 1px solid var(--border-color);
+      padding: 6px 12px;
+      border-radius: var(--radius);
+      cursor: pointer;
+      font-size: 0.8rem;
+      font-weight: 500;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      text-decoration: none;
+      transition: all 0.15s;
+    }
+
+    .btn:hover {
+      background: #25334d;
+      border-color: #3b4d70;
+    }
+
+    .btn-editor-link {
+      background: rgba(16, 185, 129, 0.15);
+      border: 1px solid var(--accent-green);
+      color: var(--accent-green);
+      font-weight: 600;
+    }
+
+    .btn-editor-link:hover {
+      background: var(--accent-green);
+      color: #fff;
+    }
+
+    /* Full Viewport Workspace */
+    .viewport-container {
+      flex: 1;
+      position: relative;
+      width: 100%;
+      height: calc(100vh - 54px);
+      background: radial-gradient(circle, #1a2538 0%, #06090f 100%);
+      overflow: hidden;
+    }
+
+    #pose3d-canvas {
+      width: 100%;
+      height: 100%;
+      display: block;
+      outline: none;
+      pointer-events: none !important;
+    }
+
+    #viewportInteractionLayer {
+      position: absolute;
+      inset: 0;
+      z-index: 5;
+      cursor: default;
+    }
+
+    /* Floating Moon Animator Hierarchy Window */
+    .moon-floating-window {
+      position: absolute;
+      top: 20px;
+      left: 20px;
+      width: 250px;
+      background: rgba(17, 23, 36, 0.94);
+      backdrop-filter: blur(12px);
+      border: 1px solid var(--border-color);
+      border-top: 3px solid var(--moon-orange);
+      border-radius: var(--radius);
+      box-shadow: 0 10px 30px rgba(0,0,0,0.7);
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      padding: 12px;
+      z-index: 10;
+    }
+
+    .moon-window-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 0.78rem;
+      font-weight: 700;
+      color: var(--moon-orange);
+      border-bottom: 1px solid rgba(245, 158, 11, 0.2);
+      padding-bottom: 6px;
+    }
+
+    .limb-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 5px;
+    }
+
+    .btn-limb {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-color);
+      color: var(--text-main);
+      padding: 6px 8px;
+      border-radius: 4px;
+      font-size: 0.74rem;
+      cursor: pointer;
+      text-align: left;
+      transition: all 0.1s;
+    }
+
+    .btn-limb:hover {
+      border-color: var(--moon-orange);
+      background: #23304a;
+    }
+
+    .btn-limb.active {
+      background: rgba(245, 158, 11, 0.2);
+      border-color: var(--moon-orange);
+      color: var(--moon-orange);
+      font-weight: 700;
+    }
+
+    /* Floating On-Screen Moon Animator HUD Badge */
+    .moon-viewport-badge {
+      position: absolute;
+      top: 20px;
+      right: 20px;
+      background: rgba(17, 23, 36, 0.95);
+      border: 2px solid var(--moon-orange);
+      box-shadow: 0 6px 25px rgba(0,0,0,0.8);
+      border-radius: 6px;
+      padding: 10px 14px;
+      font-family: monospace;
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+      min-width: 200px;
+      z-index: 10;
+    }
+
+    .moon-badge-value {
+      font-size: 1.05rem;
+      font-weight: 800;
+      color: var(--moon-orange);
+      border-bottom: 1px solid rgba(245, 158, 11, 0.3);
+      padding-bottom: 4px;
+      text-align: right;
+    }
+
+    .moon-badge-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: rgba(0,0,0,0.3);
+      padding: 5px 8px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 0.74rem;
+      color: #e2e8f0;
+      transition: all 0.1s;
+      border: 1px solid transparent;
+    }
+
+    .moon-badge-row:hover {
+      border-color: var(--moon-orange);
+      background: rgba(245, 158, 11, 0.15);
+    }
+
+    .moon-badge-row b {
+      color: var(--moon-orange);
+    }
+
+    /* Controls Guide HUD */
+    .controls-guide-hud {
+      position: absolute;
+      bottom: 20px;
+      left: 20px;
+      background: rgba(15, 23, 42, 0.92);
+      backdrop-filter: blur(8px);
+      border: 1px solid var(--border-color);
+      padding: 8px 14px;
+      border-radius: 6px;
+      font-family: monospace;
+      font-size: 0.74rem;
+      color: var(--text-muted);
+      pointer-events: none;
+      z-index: 10;
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+    }
+
+    .controls-guide-hud b {
+      color: var(--moon-orange);
+    }
+
+    /* Center Bottom Action Bar */
+    .action-bar-center {
+      position: absolute;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      background: rgba(17, 24, 39, 0.94);
+      backdrop-filter: blur(10px);
+      border: 1px solid var(--border-color);
+      padding: 6px 16px;
+      border-radius: 30px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.7);
+      z-index: 10;
+    }
+
+    .btn-snap {
+      background: linear-gradient(135deg, var(--moon-orange), var(--moon-orange-dark));
+      border: 1px solid #fbbf24;
+      color: #000;
+      padding: 8px 20px;
+      border-radius: 20px;
+      font-size: 0.84rem;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      box-shadow: 0 0 15px rgba(245, 158, 11, 0.4);
+      transition: all 0.15s;
+    }
+
+    .btn-snap:hover {
+      transform: scale(1.04);
+      background: linear-gradient(135deg, #fbbf24, var(--moon-orange));
+    }
+
+    .toast {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      background: #162032;
+      color: #fff;
+      border: 1px solid var(--moon-orange);
+      padding: 10px 18px;
+      border-radius: 6px;
+      box-shadow: 0 4px 25px rgba(0,0,0,0.6);
+      font-size: 0.85rem;
+      opacity: 0;
+      transform: translateY(10px);
+      transition: all 0.2s ease;
+      pointer-events: none;
+      z-index: 1000;
+    }
+
+    .toast.show {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="brand">
+      <span class="brand-badge">Moon Animator</span>
+      <span>3D Viewport Rigging Studio</span>
+    </div>
+
+    <div class="top-actions">
+      <input type="file" id="skinFileInput" accept="image/png" style="display:none;" />
+      <button class="btn" id="uploadSkinBtn">📁 Load Skin File</button>
+      <a href="index.html" class="btn btn-editor-link">← Back to Skin Studio</a>
+    </div>
+  </header>
+
+  <!-- Full 3D Viewport Workspace -->
+  <div class="viewport-container" id="viewportContainer">
+    <canvas id="pose3d-canvas"></canvas>
+
+    <!-- Transparent Interaction Layer (Locks camera to Right-Click only) -->
+    <div id="viewportInteractionLayer"></div>
+
+    <!-- Floating Moon Animator Hierarchy Window -->
+    <div class="moon-floating-window">
+      <div class="moon-window-header">
+        <span>Rig Hierarchy</span>
+        <span style="font-size:0.68rem; color:var(--text-muted);">Left-Click to Select</span>
+      </div>
+
+      <div class="limb-grid">
+        <button class="btn-limb active" data-limb="head">Head</button>
+        <button class="btn-limb" data-limb="body">Torso</button>
+        <button class="btn-limb" data-limb="rightArm">Right Arm</button>
+        <button class="btn-limb" data-limb="leftArm">Left Arm</button>
+        <button class="btn-limb" data-limb="rightLeg">Right Leg</button>
+        <button class="btn-limb" data-limb="leftLeg">Left Leg</button>
+      </div>
+      <button class="btn-limb" data-limb="root" style="width:100%;">Rig (Root Position)</button>
+
+      <div style="display:flex; gap:6px; margin-top:4px;">
+        <button class="btn" id="zeroSelectedBtn" style="flex:1; font-size:0.72rem; padding:4px;">Zero Limb</button>
+        <button class="btn" id="resetAllBtn" style="flex:1; font-size:0.72rem; padding:4px;">T-Pose</button>
+      </div>
+    </div>
+
+    <!-- Floating On-Screen Moon Animator HUD Badge -->
+    <div class="moon-viewport-badge">
+      <div class="moon-badge-value" id="hudValueText">0.000</div>
+      
+      <!-- MODE TOGGLE (ONLY R KEY OR EXPLICIT CLICK HERE) -->
+      <div class="moon-badge-row" id="hudToggleModeBtn" title="Press 'R' to toggle Move vs Rotate">
+        <span>Mode (R):</span>
+        <b id="hudModeText">Rotation</b>
+      </div>
+
+      <!-- SPACE TOGGLE (Y KEY OR EXPLICIT CLICK HERE) -->
+      <div class="moon-badge-row" id="hudToggleSpaceBtn" title="Press 'Y' to toggle Space">
+        <span>Space (Y):</span>
+        <b id="hudSpaceText">Local</b>
+      </div>
+
+      <div style="font-size:0.7rem; color:var(--text-muted); display:flex; justify-content:space-between; margin-top:2px;">
+        <span>Selected:</span>
+        <b id="hudActiveLimbText" style="color:#fff;">Head</b>
+      </div>
+    </div>
+
+    <!-- Real-time Controls Guide HUD -->
+    <div class="controls-guide-hud">
+      <div>🖱️ <b>Right-Click Drag:</b> Look around (Camera ONLY)</div>
+      <div>🎯 <b>Left-Click Drag:</b> Move Arrows / Rotate Dots ONLY</div>
+      <div>⌨️ <b>R Key:</b> Change Mode (Move / Rotate)</div>
+      <div id="camCoordsText" style="color:#64748b; font-size:0.68rem; margin-top:2px;">Cam: X: 0.0, Y: 14.0, Z: 46.0</div>
+    </div>
+
+    <!-- Center Bottom Action Bar -->
+    <div class="action-bar-center">
+      <button class="btn-snap" id="takePictureBtn">
+        📸 Take Picture
+      </button>
+      <button class="btn" id="copyCamBtn" style="border-radius:20px; font-size:0.76rem;">
+        📋 Copy Camera
+      </button>
+    </div>
+  </div>
+
+  <div class="toast" id="toast">Notification</div>
+
+  <script>
+    /* =========================================================
+       1. SYNCHRONOUS STEVE FALLBACK SKIN (NEVER BLANK)
+       ========================================================= */
+    function generateSteveDataUrl() {
+      const c = document.createElement('canvas');
+      c.width = 64; c.height = 64;
+      const ctx = c.getContext('2d');
+      function f(x, y, w, h, col) { ctx.fillStyle = col; ctx.fillRect(x, y, w, h); }
+
+      // Head
+      f(0, 0, 32, 16, '#452b1b');
+      f(8, 8, 8, 8, '#bb8361');
+      f(8, 8, 8, 2, '#452b1b');
+      f(9, 10, 1, 1, '#452b1b'); f(14, 10, 1, 1, '#452b1b');
+      f(10, 12, 1, 1, '#fff'); f(11, 12, 1, 1, '#2e389e');
+      f(13, 12, 1, 1, '#2e389e'); f(14, 12, 1, 1, '#fff');
+      f(11, 13, 2, 1, '#9c684a'); f(10, 14, 4, 1, '#472619');
+      // Torso
+      f(16, 16, 24, 16, '#00a8a8');
+      f(20, 20, 8, 2, '#bb8361');
+      // Arms
+      f(40, 16, 16, 4, '#00a8a8');
+      f(40, 20, 16, 12, '#bb8361');
+      f(32, 48, 16, 4, '#00a8a8');
+      f(32, 52, 16, 12, '#bb8361');
+      // Legs
+      f(0, 16, 16, 12, '#2c3577');
+      f(0, 28, 16, 4, '#424242');
+      f(16, 48, 16, 12, '#2c3577');
+      f(16, 60, 16, 4, '#424242');
+
+      return c.toDataURL('image/png');
+    }
+
+    /* =========================================================
+       2. RIG ENGINE & CAMERA SYSTEM
+       ========================================================= */
+    let poseViewer = null;
+    let activeLimbKey = 'head';
+    let currentMode = 'rotate'; // 'rotate' or 'translate' (ONLY TOGGLED VIA R KEY)
+    let currentSpace = 'local';  // 'local' or 'world'
+
+    // Dedicated Right-Click Spherical Camera (100% Free of OrbitControls)
+    let camRadius = 48;
+    let camPhi = 1.28;
+    let camTheta = 0;
+    const camTarget = new THREE.Vector3(0, 0, 0);
+    let isRightDraggingCamera = false;
+    let lastRightMouse = { x: 0, y: 0 };
+
+    const limbDisplayNames = {
+      head: 'Head',
+      body: 'Torso',
+      rightArm: 'Right Arm',
+      leftArm: 'Left Arm',
+      rightLeg: 'Right Leg',
+      leftLeg: 'Left Leg',
+      root: 'Rig (Root)'
+    };
+
+    const limbOffsets = {
+      head:     { basePos: new THREE.Vector3(), pos: new THREE.Vector3(), rot: new THREE.Euler(0, 0, 0, 'YXZ') },
+      body:     { basePos: new THREE.Vector3(), pos: new THREE.Vector3(), rot: new THREE.Euler(0, 0, 0, 'YXZ') },
+      rightArm: { basePos: new THREE.Vector3(), pos: new THREE.Vector3(), rot: new THREE.Euler(0, 0, 0, 'YXZ') },
+      leftArm:  { basePos: new THREE.Vector3(), pos: new THREE.Vector3(), rot: new THREE.Euler(0, 0, 0, 'YXZ') },
+      rightLeg: { basePos: new THREE.Vector3(), pos: new THREE.Vector3(), rot: new THREE.Euler(0, 0, 0, 'YXZ') },
+      leftLeg:  { basePos: new THREE.Vector3(), pos: new THREE.Vector3(), rot: new THREE.Euler(0, 0, 0, 'YXZ') },
+      root:     { basePos: new THREE.Vector3(), pos: new THREE.Vector3(), rot: new THREE.Euler(0, 0, 0, 'YXZ') }
+    };
+
+    function showToast(msg) {
+      const t = document.getElementById('toast');
+      t.textContent = msg;
+      t.classList.add('show');
+      setTimeout(() => t.classList.remove('show'), 2200);
+    }
+
+    function initStudio() {
+      const container = document.getElementById('viewportContainer');
+      const canvas = document.getElementById('pose3d-canvas');
+      const interactionLayer = document.getElementById('viewportInteractionLayer');
+
+      // Prevent default right-click menu
+      interactionLayer.addEventListener('contextmenu', (e) => e.preventDefault());
+
+      // 1. Guaranteed skin loading
+      let initialSkin = localStorage.getItem('minecraft_active_skin');
+      if (!initialSkin || initialSkin.length < 100 || !initialSkin.startsWith('data:image')) {
+        initialSkin = generateSteveDataUrl();
+        try { localStorage.setItem('minecraft_active_skin', initialSkin); } catch (e) {}
+      }
+
+      // Initialize SkinViewer
+      poseViewer = new skinview3d.SkinViewer({
+        canvas: canvas,
+        width: container.clientWidth || window.innerWidth,
+        height: container.clientHeight || (window.innerHeight - 54),
+        skin: initialSkin,
+        preserveDrawingBuffer: true
+      });
+
+      // Defensively remove any internal listeners
+      if (poseViewer.controls) {
+        try {
+          if (typeof poseViewer.controls.dispose === 'function') poseViewer.controls.dispose();
+          poseViewer.controls.enabled = false;
+        } catch (e) {}
+        poseViewer.controls = null;
+      }
+
+      // Camera initialization
+      updateCameraFromSpherical();
+
+      // Record Joint Pivots
+      setupJointPivots();
+
+      // Studio Floor Grid (Moon Animator Baseplate)
+      const grid = new THREE.GridHelper(100, 50, 0x38bdf8, 0x22324d);
+      grid.position.y = -16.02;
+      poseViewer.scene.add(grid);
+
+      // Lighting
+      setupLighting();
+
+      // Moon Animator Visuals: Orange Wireframe Outline & 3D Gizmos
+      setupOrangeBoundingBox();
+      setupGizmoVisuals();
+
+      // Viewport Interaction on the isolated Interaction Layer
+      setup3DViewportInteraction(interactionLayer);
+
+      // Start on Head
+      selectLimb('head');
+    }
+
+    function updateCameraFromSpherical() {
+      if (!poseViewer) return;
+      poseViewer.camera.position.x = camTarget.x + camRadius * Math.sin(camPhi) * Math.sin(camTheta);
+      poseViewer.camera.position.y = camTarget.y + camRadius * Math.cos(camPhi);
+      poseViewer.camera.position.z = camTarget.z + camRadius * Math.sin(camPhi) * Math.cos(camTheta);
+      poseViewer.camera.lookAt(camTarget);
+
+      const cp = poseViewer.camera.position;
+      const readout = document.getElementById('camCoordsText');
+      if (readout) {
+        readout.textContent = `Cam: X: ${cp.x.toFixed(1)}, Y: ${cp.y.toFixed(1)}, Z: ${cp.z.toFixed(1)}`;
+      }
+      poseViewer.render();
+    }
+
+    function setupJointPivots() {
+      if (!poseViewer.playerObject || !poseViewer.playerObject.skin) return;
+      const skin = poseViewer.playerObject.skin;
+      const limbs = ['head', 'body', 'rightArm', 'leftArm', 'rightLeg', 'leftLeg'];
+
+      limbs.forEach(k => {
+        if (skin[k]) {
+          limbOffsets[k].basePos.copy(skin[k].position);
+        }
+      });
+      limbOffsets.root.basePos.copy(poseViewer.playerObject.position);
+    }
+
+    function setupLighting() {
+      if (poseViewer.globalLight) poseViewer.globalLight.intensity = 0.65;
+      if (poseViewer.cameraLight) poseViewer.cameraLight.intensity = 0.55;
+
+      const sun = new THREE.DirectionalLight(0xfff5e6, 1.4);
+      sun.position.set(30, 45, 30);
+      poseViewer.scene.add(sun);
+    }
+
+    /* =========================================================
+       3. ORANGE BOUNDING BOX HIGHLIGHT (From Screenshots 1, 2, 4)
+       ========================================================= */
+    let highlightWireframeBox = null;
+
+    function setupOrangeBoundingBox() {
+      const geom = new THREE.BoxGeometry(1, 1, 1);
+      const edges = new THREE.EdgesGeometry(geom);
+      const mat = new THREE.LineBasicMaterial({ color: 0xf59e0b, linewidth: 2, depthTest: false });
+      highlightWireframeBox = new THREE.LineSegments(edges, mat);
+      highlightWireframeBox.renderOrder = 9998;
+      poseViewer.scene.add(highlightWireframeBox);
+    }
+
+    function updateHighlightBox() {
+      if (!highlightWireframeBox) return;
+      const obj = getLimbObject(activeLimbKey);
+      if (!obj) {
+        highlightWireframeBox.visible = false;
+        return;
+      }
+      highlightWireframeBox.visible = true;
+
+      if (activeLimbKey === 'head') {
+        highlightWireframeBox.scale.set(8.4, 8.4, 8.4);
+      } else if (activeLimbKey === 'body') {
+        highlightWireframeBox.scale.set(8.4, 12.4, 4.4);
+      } else if (activeLimbKey === 'rightArm' || activeLimbKey === 'leftArm') {
+        highlightWireframeBox.scale.set(4.4, 12.4, 4.4);
+      } else if (activeLimbKey === 'rightLeg' || activeLimbKey === 'leftLeg') {
+        highlightWireframeBox.scale.set(4.4, 12.4, 4.4);
+      } else {
+        highlightWireframeBox.scale.set(16.5, 32.5, 8.5);
+      }
+
+      const worldPos = new THREE.Vector3();
+      obj.getWorldPosition(worldPos);
+
+      if (activeLimbKey === 'head') worldPos.y += 4;
+      else if (activeLimbKey === 'body') worldPos.y += 6;
+      else if (activeLimbKey === 'rightArm' || activeLimbKey === 'leftArm') worldPos.y -= 4;
+      else if (activeLimbKey === 'rightLeg' || activeLimbKey === 'leftLeg') worldPos.y -= 6;
+
+      highlightWireframeBox.position.copy(worldPos);
+
+      if (currentSpace === 'local' && activeLimbKey !== 'root') {
+        const worldQuat = new THREE.Quaternion();
+        obj.getWorldQuaternion(worldQuat);
+        highlightWireframeBox.quaternion.copy(worldQuat);
+      } else {
+        highlightWireframeBox.rotation.set(0, 0, 0);
+      }
+    }
+
+    /* =========================================================
+       4. MOON ANIMATOR 3D GIZMOS:
+          - RED DOTS AT 45° ANGLES (NO OVERLAPPING OR COLLISION)
+          - ONLY THE SPHERE DOTS TRIGGER ROTATION
+          - ARROWS MOVE
+       ========================================================= */
+    let gizmoRoot = null;
+    let gizmoInteractiveHandles = []; // ONLY meshes in this array are raycasted
+
+    function setupGizmoVisuals() {
+      gizmoRoot = new THREE.Group();
+      gizmoRoot.name = "MoonGizmoRoot";
+      poseViewer.scene.add(gizmoRoot);
+      rebuildGizmoMeshes();
+    }
+
+    function rebuildGizmoMeshes() {
+      while (gizmoRoot.children.length > 0) {
+        gizmoRoot.remove(gizmoRoot.children[0]);
+      }
+      gizmoInteractiveHandles = [];
+
+      // Center Pivot Dot (Visual anchor only)
+      const centerSphereGeom = new THREE.SphereGeometry(0.35, 14, 14);
+      const centerSphereMat = new THREE.MeshBasicMaterial({ color: 0xf59e0b, depthTest: false });
+      const centerPivot = new THREE.Mesh(centerSphereGeom, centerSphereMat);
+      centerPivot.renderOrder = 9999;
+      centerPivot.raycast = () => {}; // NON-INTERACTIVE
+      gizmoRoot.add(centerPivot);
+
+      if (currentMode === 'rotate') {
+        const radius = 4.2;
+        const tube = 0.07;
+
+        // RED RING (X-Axis): Placed at 45° angles (45°, 135°, 225°, 315°)
+        // This ensures the red spheres NEVER collide with green and blue!
+        const redAngles = [Math.PI / 4, 3 * Math.PI / 4, 5 * Math.PI / 4, 7 * Math.PI / 4];
+        const ringX = createRotationRing(radius, tube, 0xef4444, 'x', [0, Math.PI / 2, 0], redAngles);
+
+        // GREEN RING (Y-Axis): Placed at front & back along Z-axis (90° and 270°)
+        const greenAngles = [Math.PI / 2, 3 * Math.PI / 2];
+        const ringY = createRotationRing(radius, tube, 0x10b981, 'y', [Math.PI / 2, 0, 0], greenAngles);
+
+        // BLUE RING (Z-Axis): Placed at top, bottom, left, right in XY plane (0°, 90°, 180°, 270°)
+        const blueAngles = [0, Math.PI / 2, Math.PI, 3 * Math.PI / 2];
+        const ringZ = createRotationRing(radius, tube, 0x38bdf8, 'z', [0, 0, 0], blueAngles);
+
+        gizmoRoot.add(ringX, ringY, ringZ);
+      } else {
+        // --- TRANSLATION MOVE ARROWS ---
+        const length = 5.5;
+        const arrowX = createMoveArrow(length, 0xef4444, 'x', [0, 0, -Math.PI / 2]);
+        const arrowY = createMoveArrow(length, 0x10b981, 'y', [0, 0, 0]);
+        const arrowZ = createMoveArrow(length, 0x38bdf8, 'z', [Math.PI / 2, 0, 0]);
+
+        gizmoRoot.add(arrowX, arrowY, arrowZ);
+      }
+
+      updateGizmoWorldPosition();
+      updateHighlightBox();
+    }
+
+    function createRotationRing(radius, tube, hex, axis, rot, angles) {
+      const group = new THREE.Group();
+
+      // The circular line is purely visual (RAYCASTING DISABLED)
+      const geom = new THREE.TorusGeometry(radius, tube, 8, 64);
+      const mat = new THREE.MeshBasicMaterial({ color: hex, depthTest: false, transparent: true, opacity: 0.55 });
+      const ringLine = new THREE.Mesh(geom, mat);
+      ringLine.renderOrder = 9998;
+      ringLine.raycast = () => {}; // CLICKING THE LINE DOES NOTHING!
+      group.add(ringLine);
+
+      // ONLY THE DOTS / SPHERES ON THE RING TRIGGER ROTATION
+      const sphGeom = new THREE.SphereGeometry(0.55, 14, 14);
+      const sphMat = new THREE.MeshBasicMaterial({ color: hex, depthTest: false });
+
+      angles.forEach(ang => {
+        const dot = new THREE.Mesh(sphGeom, sphMat);
+        dot.position.set(radius * Math.cos(ang), radius * Math.sin(ang), 0);
+        dot.renderOrder = 9999;
+        dot.userData = { axis: axis, mode: 'rotate', isGripDot: true };
+        group.add(dot);
+        gizmoInteractiveHandles.push(dot); // ONLY DOTS ARE INTERACTIVE
+      });
+
+      group.rotation.set(rot[0], rot[1], rot[2]);
+      return group;
+    }
+
+    function createMoveArrow(length, hex, axis, rot) {
+      const group = new THREE.Group();
+      const shaftGeom = new THREE.CylinderGeometry(0.12, 0.12, length, 12);
+      const mat = new THREE.MeshBasicMaterial({ color: hex, depthTest: false, transparent: true, opacity: 0.95 });
+      const shaft = new THREE.Mesh(shaftGeom, mat);
+      shaft.position.y = length / 2;
+      shaft.renderOrder = 9999;
+
+      const coneGeom = new THREE.ConeGeometry(0.45, 1.3, 16);
+      const cone = new THREE.Mesh(coneGeom, mat);
+      cone.position.y = length;
+      cone.renderOrder = 9999;
+
+      group.add(shaft, cone);
+      group.rotation.set(rot[0], rot[1], rot[2]);
+
+      const data = { axis: axis, mode: 'translate' };
+      shaft.userData = data;
+      cone.userData = data;
+
+      gizmoInteractiveHandles.push(shaft, cone);
+      return group;
+    }
+
+    function getLimbObject(key) {
+      if (!poseViewer || !poseViewer.playerObject || !poseViewer.playerObject.skin) return null;
+      if (key === 'root') return poseViewer.playerObject;
+      return poseViewer.playerObject.skin[key] || null;
+    }
+
+    function updateGizmoWorldPosition() {
+      if (!gizmoRoot) return;
+      const obj = getLimbObject(activeLimbKey);
+      if (!obj) {
+        gizmoRoot.visible = false;
+        return;
+      }
+      gizmoRoot.visible = true;
+
+      const worldPos = new THREE.Vector3();
+      obj.getWorldPosition(worldPos);
+      gizmoRoot.position.copy(worldPos);
+
+      if (currentSpace === 'local' && activeLimbKey !== 'root') {
+        const worldQuat = new THREE.Quaternion();
+        obj.getWorldQuaternion(worldQuat);
+        gizmoRoot.quaternion.copy(worldQuat);
+      } else {
+        gizmoRoot.rotation.set(0, 0, 0);
+      }
+    }
+
+    /* =========================================================
+       5. VIEWPORT INTERACTION:
+          - RIGHT-CLICK DRAG: LOOK AROUND (CAMERA ONLY)
+          - LEFT-CLICK: DRAG GIZMO OR SELECT LIMB (NEVER TOUCHES CAMERA)
+          - 3D PROJECTION MATH FOR MOVEMENT & ROTATION
+       ========================================================= */
+    function setup3DViewportInteraction(interactionLayer) {
+      const raycaster = new THREE.Raycaster();
+      const mouse = new THREE.Vector2();
+
+      let isDraggingGizmo = false;
+      let dragAxis = null;
+      
+      let startHitWorld = new THREE.Vector3();
+      let startPivotWorld = new THREE.Vector3();
+      let startLimbPos = new THREE.Vector3();
+      let startLimbQuat = new THREE.Quaternion();
+      let activeConstraintPlane = new THREE.Plane();
+      let axisWorldDir = new THREE.Vector3();
+      let startRotVec = new THREE.Vector3();
+
+      function updateRay(clientX, clientY) {
+        const rect = interactionLayer.getBoundingClientRect();
+        mouse.x = ((clientX - rect.left) / rect.width) * 2 - 1;
+        mouse.y = -((clientY - rect.top) / rect.height) * 2 + 1;
+        raycaster.setFromCamera(mouse, poseViewer.camera);
+      }
+
+      // MOUSE DOWN
+      interactionLayer.addEventListener('mousedown', (e) => {
+        // 1. RIGHT-CLICK ONLY: Start Looking Around
+        if (e.button === 2) {
+          isRightDraggingCamera = true;
+          lastRightMouse = { x: e.clientX, y: e.clientY };
+          return;
+        }
+
+        // 2. LEFT-CLICK ONLY: Handle 3D Gizmo or Limb Selection
+        if (e.button === 0) {
+          updateRay(e.clientX, e.clientY);
+
+          // Raycast against interactive gizmo handles (DOTS for rotate, ARROWS for move)
+          const gizmoHits = raycaster.intersectObjects(gizmoInteractiveHandles, true);
+          if (gizmoHits.length > 0) {
+            isDraggingGizmo = true;
+            dragAxis = gizmoHits[0].object.userData.axis;
+
+            const obj = getLimbObject(activeLimbKey);
+            startLimbPos.copy(obj.position);
+            startLimbQuat.copy(obj.quaternion);
+
+            obj.getWorldPosition(startPivotWorld);
+            axisWorldDir.copy(getGizmoAxisDirection(dragAxis));
+
+            if (currentMode === 'translate') {
+              const camToPivot = poseViewer.camera.position.clone().sub(startPivotWorld);
+              let planeNorm = new THREE.Vector3().crossVectors(axisWorldDir, camToPivot).cross(axisWorldDir).normalize();
+              if (planeNorm.lengthSq() < 0.001) {
+                planeNorm.copy(poseViewer.camera.getWorldDirection(new THREE.Vector3()).negate());
+              }
+              activeConstraintPlane.setFromNormalAndCoplanarPoint(planeNorm, startPivotWorld);
+              raycaster.ray.intersectPlane(activeConstraintPlane, startHitWorld);
+            } else {
+              activeConstraintPlane.setFromNormalAndCoplanarPoint(axisWorldDir, startPivotWorld);
+              const hit = new THREE.Vector3();
+              if (raycaster.ray.intersectPlane(activeConstraintPlane, hit)) {
+                startHitWorld.copy(hit);
+                startRotVec.copy(startHitWorld).sub(startPivotWorld).normalize();
+              } else {
+                startRotVec.set(0, 1, 0);
+              }
+            }
+            return;
+          }
+
+          // Raycast against player body parts to SELECT limb
+          const playerMeshes = [];
+          poseViewer.playerObject.traverse(c => {
+            if (c.isMesh && c.visible) playerMeshes.push(c);
+          });
+
+          const playerHits = raycaster.intersectObjects(playerMeshes, false);
+          if (playerHits.length > 0) {
+            const hitMesh = playerHits[0].object;
+            const skin = poseViewer.playerObject.skin;
+            const limbKeys = ['head', 'body', 'rightArm', 'leftArm', 'rightLeg', 'leftLeg'];
+
+            for (const key of limbKeys) {
+              let found = false;
+              skin[key].traverse(c => { if (c === hitMesh) found = true; });
+              if (found) {
+                selectLimb(key);
+                showToast(`Selected: ${limbDisplayNames[key]}`);
+                return;
+              }
+            }
+          }
+        }
+      });
+
+      // MOUSE MOVE
+      window.addEventListener('mousemove', (e) => {
+        // HARDWARE BITMASK: Check if RIGHT mouse button is currently held down
+        const isRightHeld = (e.buttons & 2) !== 0;
+
+        // 1. RIGHT-CLICK: Look Around (Camera ONLY)
+        if (isRightDraggingCamera && isRightHeld) {
+          const dx = e.clientX - lastRightMouse.x;
+          const dy = e.clientY - lastRightMouse.y;
+          lastRightMouse = { x: e.clientX, y: e.clientY };
+
+          camTheta -= dx * 0.008;
+          camPhi = Math.max(0.04, Math.min(Math.PI - 0.04, camPhi - dy * 0.008));
+          updateCameraFromSpherical();
+          return;
+        } else {
+          isRightDraggingCamera = false;
+        }
+
+        // HARDWARE BITMASK: Check if LEFT mouse button is currently held down
+        const isLeftHeld = (e.buttons & 1) !== 0;
+
+        // 2. LEFT-CLICK: Drag Gizmo
+        if (!isDraggingGizmo || !isLeftHeld) {
+          isDraggingGizmo = false;
+          return;
+        }
+
+        const obj = getLimbObject(activeLimbKey);
+        if (!obj) return;
+
+        updateRay(e.clientX, e.clientY);
+
+        if (currentMode === 'translate') {
+          // --- POSITION TRANSLATION (MOVE ARROWS) ---
+          const currentHitWorld = new THREE.Vector3();
+          if (raycaster.ray.intersectPlane(activeConstraintPlane, currentHitWorld)) {
+            const worldDelta = currentHitWorld.sub(startHitWorld);
+            const distance = worldDelta.dot(axisWorldDir);
+
+            if (currentSpace === 'local' && activeLimbKey !== 'root' && obj.parent) {
+              const parentQuatInv = obj.parent.getWorldQuaternion(new THREE.Quaternion()).invert();
+              const localDisplacement = axisWorldDir.clone().multiplyScalar(distance).applyQuaternion(parentQuatInv);
+              obj.position.copy(startLimbPos).add(localDisplacement);
+            } else {
+              obj.position.copy(startLimbPos).add(axisWorldDir.clone().multiplyScalar(distance));
+            }
+
+            document.getElementById('hudValueText').textContent = (distance >= 0 ? '+' : '') + distance.toFixed(3);
+          }
+        } else {
+          // --- JOINT ROTATION (DOTS ONLY) ---
+          const currentHitWorld = new THREE.Vector3();
+          if (raycaster.ray.intersectPlane(activeConstraintPlane, currentHitWorld)) {
+            const currentRotVec = currentHitWorld.sub(startPivotWorld).normalize();
+            
+            if (startRotVec.lengthSq() > 0.001 && currentRotVec.lengthSq() > 0.001) {
+              const cross = new THREE.Vector3().crossVectors(startRotVec, currentRotVec);
+              const dot = Math.max(-1, Math.min(1, startRotVec.dot(currentRotVec)));
+              let signedAngle = Math.atan2(cross.dot(axisWorldDir), dot);
+
+              if (currentSpace === 'local' && activeLimbKey !== 'root') {
+                const localAxis = new THREE.Vector3(
+                  dragAxis === 'x' ? 1 : 0,
+                  dragAxis === 'y' ? 1 : 0,
+                  dragAxis === 'z' ? 1 : 0
+                );
+                const deltaQuat = new THREE.Quaternion().setFromAxisAngle(localAxis, signedAngle);
+                obj.quaternion.copy(startLimbQuat).multiply(deltaQuat);
+              } else {
+                const deltaQuat = new THREE.Quaternion().setFromAxisAngle(axisWorldDir, signedAngle);
+                obj.quaternion.copy(startLimbQuat).premultiply(deltaQuat);
+              }
+
+              const deg = (signedAngle * 180 / Math.PI);
+              document.getElementById('hudValueText').textContent = (deg >= 0 ? '+' : '') + deg.toFixed(1) + '°';
+            }
+          }
+        }
+
+        updateGizmoWorldPosition();
+        updateHighlightBox();
+        poseViewer.render();
+      });
+
+      // MOUSE UP
+      window.addEventListener('mouseup', (e) => {
+        if ((e.buttons & 2) === 0) isRightDraggingCamera = false;
+        if ((e.buttons & 1) === 0) {
+          isDraggingGizmo = false;
+          dragAxis = null;
+        }
+      });
+
+      // MOUSE WHEEL ZOOM
+      interactionLayer.addEventListener('wheel', (e) => {
+        e.preventDefault();
+        camRadius = Math.max(12, Math.min(150, camRadius + e.deltaY * 0.05));
+        updateCameraFromSpherical();
+      }, { passive: false });
+    }
+
+    function getGizmoAxisDirection(axisKey) {
+      const dir = new THREE.Vector3();
+      if (axisKey === 'x') dir.set(1, 0, 0);
+      else if (axisKey === 'y') dir.set(0, 1, 0);
+      else if (axisKey === 'z') dir.set(0, 0, 1);
+
+      if (currentSpace === 'local' && activeLimbKey !== 'root') {
+        const obj = getLimbObject(activeLimbKey);
+        if (obj) {
+          const quat = new THREE.Quaternion();
+          obj.getWorldQuaternion(quat);
+          dir.applyQuaternion(quat);
+        }
+      }
+      return dir.normalize();
+    }
+
+    function selectLimb(key) {
+      activeLimbKey = key;
+      document.getElementById('hudActiveLimbText').textContent = limbDisplayNames[key];
+      document.querySelectorAll('.btn-limb').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.limb === key);
+      });
+      document.getElementById('hudValueText').textContent = '0.000';
+      updateGizmoWorldPosition();
+      updateHighlightBox();
+      poseViewer.render();
+    }
+
+    /* =========================================================
+       6. TOGGLE MODE (STRICTLY VIA 'R' KEY / EXPLICIT HUD CLICK)
+       ========================================================= */
+    function toggleMode() {
+      currentMode = currentMode === 'rotate' ? 'translate' : 'rotate';
+      const isRot = currentMode === 'rotate';
+      document.getElementById('hudModeText').textContent = isRot ? 'Rotation' : 'Position';
+      rebuildGizmoMeshes();
+      showToast(`Mode (R): ${isRot ? 'Rotation (Dots)' : 'Position (Arrows)'}`);
+      poseViewer.render();
+    }
+
+    function toggleSpace() {
+      currentSpace = currentSpace === 'local' ? 'world' : 'local';
+      const label = currentSpace.charAt(0).toUpperCase() + currentSpace.slice(1);
+      document.getElementById('hudSpaceText').textContent = label;
+      updateGizmoWorldPosition();
+      updateHighlightBox();
+      showToast(`Space (Y): ${label}`);
+      poseViewer.render();
+    }
+
+    // HOTKEYS: ONLY 'R' KEY CHANGES POSE MODE
+    window.addEventListener('keydown', (e) => {
+      if (e.target.tagName === 'INPUT') return;
+      const k = e.key.toLowerCase();
+      if (k === 'r') toggleMode();
+      if (k === 'y') toggleSpace();
+    });
+
+    document.getElementById('hudToggleModeBtn').onclick = toggleMode;
+    document.getElementById('hudToggleSpaceBtn').onclick = toggleSpace;
+
+    /* =========================================================
+       7. LIMB MENU ACTIONS & ZEROING
+       ========================================================= */
+    document.querySelectorAll('.btn-limb').forEach(btn => {
+      btn.onclick = () => selectLimb(btn.dataset.limb);
+    });
+
+    document.getElementById('zeroSelectedBtn').onclick = () => {
+      const obj = getLimbObject(activeLimbKey);
+      if (!obj) return;
+      obj.rotation.set(0, 0, 0);
+      if (activeLimbKey !== 'root') {
+        obj.position.copy(limbOffsets[activeLimbKey].basePos);
+      }
+      updateGizmoWorldPosition();
+      updateHighlightBox();
+      poseViewer.render();
+      showToast(`Zeroed ${limbDisplayNames[activeLimbKey]}`);
+    };
+
+    document.getElementById('resetAllBtn').onclick = () => {
+      Object.keys(limbOffsets).forEach(k => {
+        const obj = getLimbObject(k);
+        if (obj) {
+          obj.rotation.set(0, 0, 0);
+          obj.position.copy(limbOffsets[k].basePos);
+        }
+      });
+      updateGizmoWorldPosition();
+      updateHighlightBox();
+      poseViewer.render();
+      showToast('Reset character to T-Pose');
+    };
+
+    // Camera Snapshot Grabber
+    document.getElementById('takePictureBtn').onclick = () => {
+      if (!poseViewer) return;
+      const cp = poseViewer.camera.position;
+      const posX = cp.x.toFixed(1);
+      const posY = cp.y.toFixed(1);
+      const posZ = cp.z.toFixed(1);
+
+      // Hide gizmo handles for clean snapshot
+      gizmoRoot.visible = false;
+      highlightWireframeBox.visible = false;
+      poseViewer.render();
+      const dataUrl = poseViewer.renderer.domElement.toDataURL('image/png');
+      gizmoRoot.visible = true;
+      highlightWireframeBox.visible = true;
+
+      const filename = `minecraft_pose_cam_X${posX}_Y${posY}_Z${posZ}.png`;
+      const link = document.createElement('a');
+      link.download = filename;
+      link.href = dataUrl;
+      link.click();
+
+      showToast(`📸 Picture Taken! Cam: (${posX}, ${posY}, ${posZ})`);
+    };
+
+    document.getElementById('copyCamBtn').onclick = () => {
+      const cp = poseViewer.camera.position;
+      const str = `Camera: X: ${cp.x.toFixed(2)}, Y: ${cp.y.toFixed(2)}, Z: ${cp.z.toFixed(2)}`;
+      navigator.clipboard.writeText(str);
+      showToast('📋 Copied camera coordinates!');
+    };
+
+    // Skin upload
+    document.getElementById('uploadSkinBtn').onclick = () => document.getElementById('skinFileInput').click();
+    document.getElementById('skinFileInput').onchange = (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        const data = ev.target.result;
+        poseViewer.loadSkin(data);
+        localStorage.setItem('minecraft_active_skin', data);
+        showToast('Skin loaded!');
+      };
+      reader.readAsDataURL(file);
+    };
+
+    window.addEventListener('resize', () => {
+      if (poseViewer) {
+        const container = document.getElementById('viewportContainer');
+        poseViewer.setSize(container.clientWidth, container.clientHeight);
+        updateCameraFromSpherical();
+      }
+    });
+
+    window.addEventListener('DOMContentLoaded', initStudio);
+  </script>
+</body>
+</html>
