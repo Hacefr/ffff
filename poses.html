@@ -3,24 +3,24 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Minecraft 3D Poses Studio — Moon Animator Viewport Rig</title>
-  <!-- Three.js (r156) & SkinView3D Matching Engine -->
+  <title>Poses Studio</title>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/0.156.0/three.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/skinview3d@3.2.0/bundles/skinview3d.bundle.js"></script>
   <style>
     :root {
-      --bg-dark: #090d16;
-      --bg-panel: #111724;
-      --bg-surface: #1a2336;
-      --bg-input: #080c14;
-      --moon-orange: #f59e0b;
-      --moon-orange-dark: #d97706;
-      --accent-blue: #38bdf8;
-      --accent-green: #10b981;
-      --text-main: #f8fafc;
-      --text-muted: #94a3b8;
-      --border-color: #243047;
-      --radius: 6px;
+      --bg-dark: #090a0d;
+      --bg-panel: #13151a;
+      --bg-surface: #1a1d24;
+      --bg-input: #0c0e12;
+      --border: #242833;
+      --border-strong: #323746;
+      --accent: #2563eb;
+      --accent-hover: #1d4ed8;
+      --danger: #dc2626;
+      --danger-hover: #b91c1c;
+      --text-main: #f1f3f7;
+      --text-muted: #7e8696;
+      --radius: 4px;
     }
 
     * {
@@ -32,7 +32,8 @@
     }
 
     body {
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      font-size: 12px;
       background-color: var(--bg-dark);
       color: var(--text-main);
       display: flex;
@@ -41,83 +42,86 @@
       overflow: hidden;
     }
 
-    /* Top Bar */
     header {
       background: var(--bg-panel);
-      border-bottom: 1px solid var(--border-color);
-      padding: 8px 16px;
+      border-bottom: 1px solid var(--border);
+      height: 40px;
+      padding: 0 12px;
       display: flex;
       align-items: center;
       justify-content: space-between;
-      gap: 12px;
       z-index: 20;
     }
 
     .brand {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      font-weight: 700;
-      font-size: 1.05rem;
-      color: #fff;
-    }
-
-    .brand-badge {
-      background: linear-gradient(135deg, var(--moon-orange), var(--moon-orange-dark));
-      color: #000;
-      font-size: 0.72rem;
-      font-weight: 800;
-      padding: 3px 8px;
-      border-radius: 4px;
-      letter-spacing: 0.04em;
+      font-weight: 600;
+      font-size: 0.85rem;
+      letter-spacing: 0.02em;
     }
 
     .top-actions {
       display: flex;
       align-items: center;
-      gap: 8px;
+      gap: 6px;
     }
 
     .btn {
       background: var(--bg-surface);
       color: var(--text-main);
-      border: 1px solid var(--border-color);
-      padding: 6px 12px;
+      border: 1px solid var(--border);
+      height: 26px;
+      padding: 0 10px;
       border-radius: var(--radius);
       cursor: pointer;
-      font-size: 0.8rem;
+      font-size: 0.72rem;
       font-weight: 500;
       display: inline-flex;
       align-items: center;
+      justify-content: center;
       gap: 6px;
       text-decoration: none;
-      transition: all 0.15s;
+      transition: background 0.1s, border-color 0.1s;
     }
 
     .btn:hover {
-      background: #25334d;
-      border-color: #3b4d70;
+      background: #252a35;
+      border-color: var(--border-strong);
     }
 
-    .btn-editor-link {
-      background: rgba(16, 185, 129, 0.15);
-      border: 1px solid var(--accent-green);
-      color: var(--accent-green);
-      font-weight: 600;
+    .btn:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
     }
 
-    .btn-editor-link:hover {
-      background: var(--accent-green);
+    .btn-primary {
+      background: var(--accent);
+      border-color: var(--accent);
       color: #fff;
     }
 
-    /* Full Viewport Workspace */
+    .btn-primary:hover {
+      background: var(--accent-hover);
+      border-color: var(--accent-hover);
+    }
+
+    .btn-danger {
+      background: transparent;
+      border-color: var(--border);
+      color: var(--danger);
+    }
+
+    .btn-danger:hover {
+      background: var(--danger);
+      border-color: var(--danger);
+      color: #fff;
+    }
+
     .viewport-container {
       flex: 1;
       position: relative;
       width: 100%;
-      height: calc(100vh - 54px);
-      background: radial-gradient(circle, #1a2538 0%, #06090f 100%);
+      height: calc(100vh - 40px);
+      background: #08090b;
       overflow: hidden;
     }
 
@@ -126,7 +130,6 @@
       height: 100%;
       display: block;
       outline: none;
-      pointer-events: none !important;
     }
 
     #viewportInteractionLayer {
@@ -136,195 +139,229 @@
       cursor: default;
     }
 
-    /* Floating Moon Animator Hierarchy Window */
-    .moon-floating-window {
+    .tool-floating-window {
       position: absolute;
-      top: 20px;
-      left: 20px;
-      width: 250px;
-      background: rgba(17, 23, 36, 0.94);
-      backdrop-filter: blur(12px);
-      border: 1px solid var(--border-color);
-      border-top: 3px solid var(--moon-orange);
+      top: 12px;
+      left: 12px;
+      width: 255px;
+      background: rgba(19, 21, 26, 0.96);
+      border: 1px solid var(--border-strong);
       border-radius: var(--radius);
-      box-shadow: 0 10px 30px rgba(0,0,0,0.7);
       display: flex;
       flex-direction: column;
       gap: 8px;
-      padding: 12px;
+      padding: 10px;
       z-index: 10;
+      max-height: calc(100vh - 70px);
+      overflow-y: auto;
     }
 
-    .moon-window-header {
+    .tab-bar {
       display: flex;
-      align-items: center;
-      justify-content: space-between;
-      font-size: 0.78rem;
-      font-weight: 700;
-      color: var(--moon-orange);
-      border-bottom: 1px solid rgba(245, 158, 11, 0.2);
+      gap: 4px;
+      border-bottom: 1px solid var(--border);
       padding-bottom: 6px;
+    }
+
+    .tab-btn {
+      flex: 1;
+      background: var(--bg-surface);
+      border: 1px solid var(--border);
+      color: var(--text-muted);
+      padding: 5px 0;
+      font-size: 0.7rem;
+      font-weight: 500;
+      border-radius: var(--radius);
+      cursor: pointer;
+      text-align: center;
+    }
+
+    .tab-btn.active {
+      background: #1e283d;
+      border-color: var(--accent);
+      color: #fff;
+    }
+
+    .panel-section {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .window-header {
+      font-size: 0.68rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-muted);
+      padding-bottom: 2px;
     }
 
     .limb-grid {
       display: grid;
       grid-template-columns: repeat(2, 1fr);
-      gap: 5px;
+      gap: 3px;
     }
 
     .btn-limb {
       background: var(--bg-surface);
-      border: 1px solid var(--border-color);
-      color: var(--text-main);
-      padding: 6px 8px;
-      border-radius: 4px;
-      font-size: 0.74rem;
+      border: 1px solid var(--border);
+      color: var(--text-muted);
+      padding: 5px 6px;
+      border-radius: var(--radius);
+      font-size: 0.7rem;
       cursor: pointer;
       text-align: left;
-      transition: all 0.1s;
     }
 
     .btn-limb:hover {
-      border-color: var(--moon-orange);
-      background: #23304a;
+      color: #fff;
+      border-color: var(--border-strong);
     }
 
     .btn-limb.active {
-      background: rgba(245, 158, 11, 0.2);
-      border-color: var(--moon-orange);
-      color: var(--moon-orange);
-      font-weight: 700;
+      background: #1e283d;
+      border-color: var(--accent);
+      color: #fff;
+      font-weight: 500;
     }
 
-    /* Floating On-Screen Moon Animator HUD Badge */
-    .moon-viewport-badge {
+    .field-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+    }
+
+    .field-label {
+      color: var(--text-muted);
+      font-size: 0.68rem;
+    }
+
+    .input-styled {
+      background: var(--bg-input);
+      border: 1px solid var(--border);
+      color: #fff;
+      padding: 4px 6px;
+      border-radius: var(--radius);
+      font-size: 0.72rem;
+      outline: none;
+      width: 100%;
+    }
+
+    .select-styled {
+      background: var(--bg-surface);
+      border: 1px solid var(--border);
+      color: #fff;
+      padding: 4px 6px;
+      border-radius: var(--radius);
+      font-size: 0.72rem;
+      outline: none;
+      width: 100%;
+      cursor: pointer;
+    }
+
+    .range-styled {
+      width: 100%;
+      height: 4px;
+      background: var(--border);
+      outline: none;
+      cursor: pointer;
+    }
+
+    .hud-badge {
       position: absolute;
-      top: 20px;
-      right: 20px;
-      background: rgba(17, 23, 36, 0.95);
-      border: 2px solid var(--moon-orange);
-      box-shadow: 0 6px 25px rgba(0,0,0,0.8);
-      border-radius: 6px;
-      padding: 10px 14px;
+      top: 12px;
+      right: 12px;
+      background: rgba(19, 21, 26, 0.94);
+      border: 1px solid var(--border-strong);
+      border-radius: var(--radius);
+      padding: 8px 12px;
       font-family: monospace;
       display: flex;
       flex-direction: column;
-      gap: 5px;
-      min-width: 200px;
+      gap: 4px;
+      min-width: 170px;
       z-index: 10;
     }
 
-    .moon-badge-value {
-      font-size: 1.05rem;
-      font-weight: 800;
-      color: var(--moon-orange);
-      border-bottom: 1px solid rgba(245, 158, 11, 0.3);
+    .hud-value {
+      font-size: 0.95rem;
+      font-weight: 600;
+      color: #fff;
+      border-bottom: 1px solid var(--border);
       padding-bottom: 4px;
       text-align: right;
     }
 
-    .moon-badge-row {
+    .hud-row {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      background: rgba(0,0,0,0.3);
-      padding: 5px 8px;
-      border-radius: 4px;
+      background: rgba(0, 0, 0, 0.2);
+      padding: 4px 6px;
+      border-radius: var(--radius);
       cursor: pointer;
-      font-size: 0.74rem;
-      color: #e2e8f0;
-      transition: all 0.1s;
+      font-size: 0.7rem;
+      color: var(--text-muted);
       border: 1px solid transparent;
     }
 
-    .moon-badge-row:hover {
-      border-color: var(--moon-orange);
-      background: rgba(245, 158, 11, 0.15);
+    .hud-row:hover {
+      border-color: var(--border-strong);
+      color: #fff;
     }
 
-    .moon-badge-row b {
-      color: var(--moon-orange);
+    .hud-row b {
+      color: #fff;
     }
 
-    /* Controls Guide HUD */
-    .controls-guide-hud {
+    .controls-guide {
       position: absolute;
-      bottom: 20px;
-      left: 20px;
-      background: rgba(15, 23, 42, 0.92);
-      backdrop-filter: blur(8px);
-      border: 1px solid var(--border-color);
-      padding: 8px 14px;
-      border-radius: 6px;
+      bottom: 12px;
+      left: 12px;
+      background: rgba(19, 21, 26, 0.92);
+      border: 1px solid var(--border);
+      padding: 6px 10px;
+      border-radius: var(--radius);
       font-family: monospace;
-      font-size: 0.74rem;
+      font-size: 0.68rem;
       color: var(--text-muted);
       pointer-events: none;
       z-index: 10;
-      display: flex;
-      flex-direction: column;
-      gap: 3px;
+      line-height: 1.4;
     }
 
-    .controls-guide-hud b {
-      color: var(--moon-orange);
-    }
-
-    /* Center Bottom Action Bar */
-    .action-bar-center {
+    .action-bar-bottom {
       position: absolute;
-      bottom: 20px;
+      bottom: 12px;
       left: 50%;
       transform: translateX(-50%);
       display: flex;
       align-items: center;
-      gap: 10px;
-      background: rgba(17, 24, 39, 0.94);
-      backdrop-filter: blur(10px);
-      border: 1px solid var(--border-color);
-      padding: 6px 16px;
-      border-radius: 30px;
-      box-shadow: 0 10px 30px rgba(0,0,0,0.7);
-      z-index: 10;
-    }
-
-    .btn-snap {
-      background: linear-gradient(135deg, var(--moon-orange), var(--moon-orange-dark));
-      border: 1px solid #fbbf24;
-      color: #000;
-      padding: 8px 20px;
-      border-radius: 20px;
-      font-size: 0.84rem;
-      font-weight: 700;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
       gap: 6px;
-      box-shadow: 0 0 15px rgba(245, 158, 11, 0.4);
-      transition: all 0.15s;
-    }
-
-    .btn-snap:hover {
-      transform: scale(1.04);
-      background: linear-gradient(135deg, #fbbf24, var(--moon-orange));
+      background: rgba(19, 21, 26, 0.95);
+      border: 1px solid var(--border-strong);
+      padding: 4px 8px;
+      border-radius: var(--radius);
+      z-index: 10;
     }
 
     .toast {
       position: fixed;
-      bottom: 24px;
-      right: 24px;
-      background: #162032;
+      bottom: 16px;
+      right: 16px;
+      background: var(--bg-panel);
       color: #fff;
-      border: 1px solid var(--moon-orange);
-      padding: 10px 18px;
-      border-radius: 6px;
-      box-shadow: 0 4px 25px rgba(0,0,0,0.6);
-      font-size: 0.85rem;
+      border: 1px solid var(--border-strong);
+      padding: 8px 12px;
+      border-radius: var(--radius);
+      font-size: 0.75rem;
       opacity: 0;
-      transform: translateY(10px);
-      transition: all 0.2s ease;
+      transform: translateY(6px);
+      transition: opacity 0.15s, transform 0.15s;
       pointer-events: none;
-      z-index: 1000;
+      z-index: 100;
     }
 
     .toast.show {
@@ -336,102 +373,186 @@
 <body>
 
   <header>
-    <div class="brand">
-      <span class="brand-badge">Moon Animator</span>
-      <span>3D Viewport Rigging Studio</span>
-    </div>
-
+    <div class="brand">Poses Studio</div>
     <div class="top-actions">
+      <!-- Undo / Redo Actions -->
+      <button class="btn" id="undoBtn" disabled title="Undo (Ctrl+Z)">Undo</button>
+      <button class="btn" id="redoBtn" disabled title="Redo (Ctrl+Y)">Redo</button>
+      
       <input type="file" id="skinFileInput" accept="image/png" style="display:none;" />
-      <button class="btn" id="uploadSkinBtn">📁 Load Skin File</button>
-      <a href="index.html" class="btn btn-editor-link">← Back to Skin Studio</a>
+      <button class="btn" id="uploadSkinBtn">Open Skin</button>
+      <a href="animator.html" class="btn btn-primary" id="openAnimatorBtn">Animation Studio &gt;</a>
+      <a href="index.html" class="btn">&lt; Skin Studio</a>
     </div>
   </header>
 
-  <!-- Full 3D Viewport Workspace -->
   <div class="viewport-container" id="viewportContainer">
     <canvas id="pose3d-canvas"></canvas>
-
-    <!-- Transparent Interaction Layer (Locks camera to Right-Click only) -->
     <div id="viewportInteractionLayer"></div>
 
-    <!-- Floating Moon Animator Hierarchy Window -->
-    <div class="moon-floating-window">
-      <div class="moon-window-header">
-        <span>Rig Hierarchy</span>
-        <span style="font-size:0.68rem; color:var(--text-muted);">Left-Click to Select</span>
+    <div class="tool-floating-window">
+      <div class="tab-bar">
+        <button class="tab-btn active" id="tabRigBtn">Rigging</button>
+        <button class="tab-btn" id="tabLightBtn">Lighting</button>
+        <button class="tab-btn" id="tabItemBtn">Objects</button>
       </div>
 
-      <div class="limb-grid">
-        <button class="btn-limb active" data-limb="head">Head</button>
-        <button class="btn-limb" data-limb="body">Torso</button>
-        <button class="btn-limb" data-limb="rightArm">Right Arm</button>
-        <button class="btn-limb" data-limb="leftArm">Left Arm</button>
-        <button class="btn-limb" data-limb="rightLeg">Right Leg</button>
-        <button class="btn-limb" data-limb="leftLeg">Left Leg</button>
-      </div>
-      <button class="btn-limb" data-limb="root" style="width:100%;">Rig (Root Position)</button>
+      <div id="rigPanelContent" class="panel-section">
+        <div class="window-header">Rig Hierarchy</div>
+        <div class="limb-grid">
+          <button class="btn-limb active" data-limb="head">Head</button>
+          <button class="btn-limb" data-limb="body">Torso</button>
+          <button class="btn-limb" data-limb="rightArm">R.Arm</button>
+          <button class="btn-limb" data-limb="leftArm">L.Arm</button>
+          <button class="btn-limb" data-limb="rightLeg">R.Leg</button>
+          <button class="btn-limb" data-limb="leftLeg">L.Leg</button>
+        </div>
+        <button class="btn-limb" data-limb="root" style="width:100%; margin-top:2px;">Character Root</button>
 
-      <div style="display:flex; gap:6px; margin-top:4px;">
-        <button class="btn" id="zeroSelectedBtn" style="flex:1; font-size:0.72rem; padding:4px;">Zero Limb</button>
-        <button class="btn" id="resetAllBtn" style="flex:1; font-size:0.72rem; padding:4px;">T-Pose</button>
+        <div style="display:flex; gap:4px; margin-top:4px;">
+          <button class="btn" id="zeroSelectedBtn" style="flex:1;">Zero</button>
+          <button class="btn" id="tposeBtn" style="flex:1;">T-Pose</button>
+          <button class="btn" id="restPoseBtn" style="flex:1;">Rest</button>
+        </div>
+      </div>
+
+      <div id="lightPanelContent" class="panel-section" style="display:none;">
+        <div style="display:flex; justify-content:space-between; align-items:center;">
+          <span class="window-header">Scene Lights</span>
+          <button class="btn btn-primary" id="addLightBtn" style="height:22px; padding:0 8px;">+ Place Light</button>
+        </div>
+
+        <select class="select-styled" id="lightsSelect"></select>
+
+        <div id="lightPropsSection" style="display:flex; flex-direction:column; gap:6px; margin-top:4px;">
+          <div>
+            <span class="field-label">Light Type</span>
+            <select class="select-styled" id="lightTypeSelect" style="margin-top:2px;">
+              <option value="point">Point Light (Omni)</option>
+              <option value="sun">Sun (Directional)</option>
+            </select>
+          </div>
+
+          <div class="field-row">
+            <span class="field-label">Color</span>
+            <div style="display:flex; align-items:center; gap:6px; flex:1; justify-content:flex-end;">
+              <input type="color" id="lightColorPicker" value="#ffffff" style="width:26px; height:22px; border:none; background:transparent; cursor:pointer;">
+              <input type="text" id="lightColorHex" class="input-styled" style="width:70px; font-family:monospace;" value="#FFFFFF" maxlength="7">
+            </div>
+          </div>
+
+          <div>
+            <div class="field-row">
+              <span class="field-label">Brightness</span>
+              <span class="field-label" id="lightIntensityValue" style="color:#fff; font-family:monospace;">2.5</span>
+            </div>
+            <input type="range" id="lightIntensitySlider" class="range-styled" min="0" max="8" step="0.1" value="2.5">
+          </div>
+
+          <div id="lightDistanceRow">
+            <div class="field-row">
+              <span class="field-label">Radius / Range</span>
+              <span class="field-label" id="lightDistanceValue" style="color:#fff; font-family:monospace;">60</span>
+            </div>
+            <input type="range" id="lightDistanceSlider" class="range-styled" min="5" max="150" step="1" value="60">
+          </div>
+
+          <div style="display:flex; gap:4px; margin-top:4px;">
+            <button class="btn" id="moveLightToCamBtn" style="flex:1;">Snap to View</button>
+            <button class="btn btn-danger" id="deleteLightBtn" style="width:60px;">Delete</button>
+          </div>
+        </div>
+      </div>
+
+      <div id="itemPanelContent" class="panel-section" style="display:none;">
+        <div class="window-header">3D Object Import</div>
+        
+        <div style="display:flex; flex-direction:column; gap:4px;">
+          <input type="file" id="itemObjInput" accept=".obj" style="display:none;" />
+          <button class="btn btn-primary" id="uploadItemObjBtn" style="width:100%;">Import .OBJ Model</button>
+          
+          <input type="file" id="itemTexInput" accept="image/png,image/jpeg" style="display:none;" />
+          <button class="btn" id="uploadItemTexBtn" style="width:100%;">Apply Texture (.png)</button>
+        </div>
+
+        <div style="border-top:1px solid var(--border); padding-top:6px; margin-top:4px;">
+          <span class="window-header">Active Objects</span>
+          <select class="select-styled" id="itemsSelect" style="margin-top:2px;"></select>
+        </div>
+
+        <div id="itemPropsSection" style="display:flex; flex-direction:column; gap:6px; margin-top:4px;">
+          <div>
+            <span class="field-label">Attach To</span>
+            <select class="select-styled" id="itemAttachSelect" style="margin-top:2px;">
+              <option value="rightArm">Right Hand</option>
+              <option value="leftArm">Left Hand</option>
+              <option value="head">Head</option>
+              <option value="world">World (Free Prop)</option>
+            </select>
+          </div>
+
+          <div>
+            <div class="field-row">
+              <span class="field-label">Scale</span>
+              <span class="field-label" id="itemScaleValue" style="color:#fff; font-family:monospace;">1.0</span>
+            </div>
+            <input type="range" id="itemScaleSlider" class="range-styled" min="0.1" max="4" step="0.05" value="1.0">
+          </div>
+
+          <div class="field-row">
+            <span class="field-label">Material Color</span>
+            <input type="color" id="itemTintPicker" value="#d1d5db" style="width:26px; height:22px; border:none; background:transparent; cursor:pointer;">
+          </div>
+
+          <div style="display:flex; gap:4px; margin-top:4px;">
+            <button class="btn" id="resetItemTransformBtn" style="flex:1;">Reset Grip</button>
+            <button class="btn btn-danger" id="deleteItemBtn" style="width:60px;">Delete</button>
+          </div>
+        </div>
       </div>
     </div>
 
-    <!-- Floating On-Screen Moon Animator HUD Badge -->
-    <div class="moon-viewport-badge">
-      <div class="moon-badge-value" id="hudValueText">0.000</div>
+    <div class="hud-badge">
+      <div class="hud-value" id="hudValueText">0.000</div>
       
-      <!-- MODE TOGGLE (ONLY R KEY OR EXPLICIT CLICK HERE) -->
-      <div class="moon-badge-row" id="hudToggleModeBtn" title="Press 'R' to toggle Move vs Rotate">
+      <div class="hud-row" id="hudToggleModeBtn">
         <span>Mode (R):</span>
         <b id="hudModeText">Rotation</b>
       </div>
 
-      <!-- SPACE TOGGLE (Y KEY OR EXPLICIT CLICK HERE) -->
-      <div class="moon-badge-row" id="hudToggleSpaceBtn" title="Press 'Y' to toggle Space">
+      <div class="hud-row" id="hudToggleSpaceBtn">
         <span>Space (Y):</span>
         <b id="hudSpaceText">Local</b>
       </div>
 
-      <div style="font-size:0.7rem; color:var(--text-muted); display:flex; justify-content:space-between; margin-top:2px;">
-        <span>Selected:</span>
-        <b id="hudActiveLimbText" style="color:#fff;">Head</b>
+      <div style="font-size:0.68rem; color:var(--text-muted); display:flex; justify-content:space-between; margin-top:2px;">
+        <span>Active:</span>
+        <b id="hudActiveTargetText" style="color:#fff;">Head</b>
       </div>
     </div>
 
-    <!-- Real-time Controls Guide HUD -->
-    <div class="controls-guide-hud">
-      <div>🖱️ <b>Right-Click Drag:</b> Look around (Camera ONLY)</div>
-      <div>🎯 <b>Left-Click Drag:</b> Move Arrows / Rotate Dots ONLY</div>
-      <div>⌨️ <b>R Key:</b> Change Mode (Move / Rotate)</div>
-      <div id="camCoordsText" style="color:#64748b; font-size:0.68rem; margin-top:2px;">Cam: X: 0.0, Y: 14.0, Z: 46.0</div>
+    <div class="controls-guide">
+      <div>WASD: Pan Camera | Q/E: Vertical | Right Click: Orbit</div>
+      <div>Left Click: Select & Move | R: Mode | Y: Space</div>
+      <div>Ctrl+Z: Undo | Ctrl+Y: Redo | Esc: Deselect</div>
+      <div id="camCoordsText" style="color:var(--text-muted); margin-top:2px;">Cam: 0.0, 14.0, 46.0</div>
     </div>
 
-    <!-- Center Bottom Action Bar -->
-    <div class="action-bar-center">
-      <button class="btn-snap" id="takePictureBtn">
-        📸 Take Picture
-      </button>
-      <button class="btn" id="copyCamBtn" style="border-radius:20px; font-size:0.76rem;">
-        📋 Copy Camera
-      </button>
+    <div class="action-bar-bottom">
+      <button class="btn btn-primary" id="takePictureBtn">Snapshot</button>
+      <button class="btn" id="copyCamBtn">Copy Cam</button>
     </div>
   </div>
 
   <div class="toast" id="toast">Notification</div>
 
   <script>
-    /* =========================================================
-       1. SYNCHRONOUS STEVE FALLBACK SKIN (NEVER BLANK)
-       ========================================================= */
     function generateSteveDataUrl() {
       const c = document.createElement('canvas');
       c.width = 64; c.height = 64;
       const ctx = c.getContext('2d');
       function f(x, y, w, h, col) { ctx.fillStyle = col; ctx.fillRect(x, y, w, h); }
 
-      // Head
       f(0, 0, 32, 16, '#452b1b');
       f(8, 8, 8, 8, '#bb8361');
       f(8, 8, 8, 2, '#452b1b');
@@ -439,15 +560,12 @@
       f(10, 12, 1, 1, '#fff'); f(11, 12, 1, 1, '#2e389e');
       f(13, 12, 1, 1, '#2e389e'); f(14, 12, 1, 1, '#fff');
       f(11, 13, 2, 1, '#9c684a'); f(10, 14, 4, 1, '#472619');
-      // Torso
       f(16, 16, 24, 16, '#00a8a8');
       f(20, 20, 8, 2, '#bb8361');
-      // Arms
       f(40, 16, 16, 4, '#00a8a8');
       f(40, 20, 16, 12, '#bb8361');
       f(32, 48, 16, 4, '#00a8a8');
       f(32, 52, 16, 12, '#bb8361');
-      // Legs
       f(0, 16, 16, 12, '#2c3577');
       f(0, 28, 16, 4, '#424242');
       f(16, 48, 16, 12, '#2c3577');
@@ -456,21 +574,23 @@
       return c.toDataURL('image/png');
     }
 
-    /* =========================================================
-       2. RIG ENGINE & CAMERA SYSTEM
-       ========================================================= */
     let poseViewer = null;
+    let activeSelectionType = 'limb';
     let activeLimbKey = 'head';
-    let currentMode = 'rotate'; // 'rotate' or 'translate' (ONLY TOGGLED VIA R KEY)
-    let currentSpace = 'local';  // 'local' or 'world'
+    let activeLightId = null;
+    let activeItemId = null;
+    let currentMode = 'rotate';
+    let currentSpace = 'local';
+    let lastLoadedSkin = null;
 
-    // Dedicated Right-Click Spherical Camera (100% Free of OrbitControls)
     let camRadius = 48;
     let camPhi = 1.28;
     let camTheta = 0;
     const camTarget = new THREE.Vector3(0, 0, 0);
     let isRightDraggingCamera = false;
     let lastRightMouse = { x: 0, y: 0 };
+
+    const keysDown = { w: false, a: false, s: false, d: false, q: false, e: false };
 
     const limbDisplayNames = {
       head: 'Head',
@@ -479,17 +599,17 @@
       leftArm: 'Left Arm',
       rightLeg: 'Right Leg',
       leftLeg: 'Left Leg',
-      root: 'Rig (Root)'
+      root: 'Root'
     };
 
     const limbOffsets = {
-      head:     { basePos: new THREE.Vector3(), pos: new THREE.Vector3(), rot: new THREE.Euler(0, 0, 0, 'YXZ') },
-      body:     { basePos: new THREE.Vector3(), pos: new THREE.Vector3(), rot: new THREE.Euler(0, 0, 0, 'YXZ') },
-      rightArm: { basePos: new THREE.Vector3(), pos: new THREE.Vector3(), rot: new THREE.Euler(0, 0, 0, 'YXZ') },
-      leftArm:  { basePos: new THREE.Vector3(), pos: new THREE.Vector3(), rot: new THREE.Euler(0, 0, 0, 'YXZ') },
-      rightLeg: { basePos: new THREE.Vector3(), pos: new THREE.Vector3(), rot: new THREE.Euler(0, 0, 0, 'YXZ') },
-      leftLeg:  { basePos: new THREE.Vector3(), pos: new THREE.Vector3(), rot: new THREE.Euler(0, 0, 0, 'YXZ') },
-      root:     { basePos: new THREE.Vector3(), pos: new THREE.Vector3(), rot: new THREE.Euler(0, 0, 0, 'YXZ') }
+      head:     { basePos: new THREE.Vector3(), baseRot: new THREE.Euler(0, 0, 0, 'YXZ') },
+      body:     { basePos: new THREE.Vector3(), baseRot: new THREE.Euler(0, 0, 0, 'YXZ') },
+      rightArm: { basePos: new THREE.Vector3(), baseRot: new THREE.Euler(0, 0, 0, 'YXZ') },
+      leftArm:  { basePos: new THREE.Vector3(), baseRot: new THREE.Euler(0, 0, 0, 'YXZ') },
+      rightLeg: { basePos: new THREE.Vector3(), baseRot: new THREE.Euler(0, 0, 0, 'YXZ') },
+      leftLeg:  { basePos: new THREE.Vector3(), baseRot: new THREE.Euler(0, 0, 0, 'YXZ') },
+      root:     { basePos: new THREE.Vector3(), baseRot: new THREE.Euler(0, 0, 0, 'YXZ') }
     };
 
     function showToast(msg) {
@@ -499,31 +619,540 @@
       setTimeout(() => t.classList.remove('show'), 2200);
     }
 
+    /* =========================================================
+       UNDO / REDO HISTORY ENGINE (Ctrl+Z / Ctrl+Y)
+       ========================================================= */
+    const historyStack = [];
+    let historyIndex = -1;
+
+    function recordHistory() {
+      const snapshot = {};
+      Object.keys(limbOffsets).forEach(k => {
+        const obj = getLimbObject(k);
+        if (obj) {
+          snapshot[k] = {
+            pos: [obj.position.x, obj.position.y, obj.position.z],
+            rot: [obj.rotation.x, obj.rotation.y, obj.rotation.z],
+            quat: [obj.quaternion.x, obj.quaternion.y, obj.quaternion.z, obj.quaternion.w]
+          };
+        }
+      });
+
+      historyStack.splice(historyIndex + 1);
+      historyStack.push(snapshot);
+      if (historyStack.length > 35) historyStack.shift();
+      historyIndex = historyStack.length - 1;
+
+      updateHistoryButtons();
+    }
+
+    function undo() {
+      if (historyIndex > 0) {
+        historyIndex--;
+        restoreHistory(historyIndex);
+        showToast('Undo pose');
+      }
+    }
+
+    function redo() {
+      if (historyIndex < historyStack.length - 1) {
+        historyIndex++;
+        restoreHistory(historyIndex);
+        showToast('Redo pose');
+      }
+    }
+
+    function restoreHistory(idx) {
+      if (idx < 0 || idx >= historyStack.length) return;
+      const snapshot = historyStack[idx];
+      Object.keys(snapshot).forEach(k => {
+        const obj = getLimbObject(k);
+        if (obj) {
+          const item = snapshot[k];
+          obj.position.set(item.pos[0], item.pos[1], item.pos[2]);
+          obj.quaternion.set(item.quat[0], item.quat[1], item.quat[2], item.quat[3]);
+        }
+      });
+      updateGizmoWorldPosition();
+      updateHighlightBox();
+      updateHistoryButtons();
+    }
+
+    function updateHistoryButtons() {
+      document.getElementById('undoBtn').disabled = historyIndex <= 0;
+      document.getElementById('redoBtn').disabled = historyIndex >= historyStack.length - 1;
+    }
+
+    document.getElementById('undoBtn').onclick = undo;
+    document.getElementById('redoBtn').onclick = redo;
+
+    /* =========================================================
+       3D PROPS & OBJ IMPORTER
+       ========================================================= */
+    let sceneItems = [];
+    let itemCounter = 1;
+
+    function parseWavefrontOBJ(text) {
+      const lines = text.split('\n');
+      const positions = [];
+      const uvs = [];
+      const normals = [];
+
+      const finalPositions = [];
+      const finalUvs = [];
+      const finalNormals = [];
+
+      lines.forEach(line => {
+        line = line.trim();
+        if (!line || line.startsWith('#')) return;
+        const parts = line.split(/\s+/);
+        const type = parts[0];
+
+        if (type === 'v') {
+          positions.push(parseFloat(parts[1]), parseFloat(parts[2]), parseFloat(parts[3]));
+        } else if (type === 'vt') {
+          uvs.push(parseFloat(parts[1]), parseFloat(parts[2]));
+        } else if (type === 'vn') {
+          normals.push(parseFloat(parts[1]), parseFloat(parts[2]), parseFloat(parts[3]));
+        } else if (type === 'f') {
+          const faceVertices = parts.slice(1);
+          for (let i = 1; i < faceVertices.length - 1; i++) {
+            [faceVertices[0], faceVertices[i], faceVertices[i + 1]].forEach(vert => {
+              const [vIdx, vtIdx, vnIdx] = vert.split('/').map(n => parseInt(n) - 1);
+              if (!isNaN(vIdx)) finalPositions.push(positions[vIdx * 3], positions[vIdx * 3 + 1], positions[vIdx * 3 + 2]);
+              if (!isNaN(vtIdx) && uvs.length > 0) finalUvs.push(uvs[vtIdx * 2], uvs[vtIdx * 2 + 1]);
+              if (!isNaN(vnIdx) && normals.length > 0) finalNormals.push(normals[vnIdx * 3], normals[vnIdx * 3 + 1], normals[vnIdx * 3 + 2]);
+            });
+          }
+        }
+      });
+
+      const geom = new THREE.BufferGeometry();
+      geom.setAttribute('position', new THREE.Float32BufferAttribute(finalPositions, 3));
+      if (finalUvs.length > 0) geom.setAttribute('uv', new THREE.Float32BufferAttribute(finalUvs, 2));
+      if (finalNormals.length > 0) geom.setAttribute('normal', new THREE.Float32BufferAttribute(finalNormals, 3));
+      else geom.computeVertexNormals();
+      return geom;
+    }
+
+    function registerItemObject(name, threeMesh, defaultAttachment = 'rightArm') {
+      const id = 'item_' + Date.now();
+      const wrapperGroup = new THREE.Group();
+      wrapperGroup.name = id;
+      wrapperGroup.userData = { isItemWrapper: true, itemId: id };
+
+      wrapperGroup.add(threeMesh);
+
+      const itemRecord = {
+        id: id,
+        name: name + ' ' + (itemCounter++),
+        group: wrapperGroup,
+        mesh: threeMesh,
+        attachment: defaultAttachment,
+        scale: 1.0
+      };
+
+      sceneItems.push(itemRecord);
+      attachItemToTarget(itemRecord, defaultAttachment);
+      updateItemsDropdown();
+      selectItem(id);
+      return itemRecord;
+    }
+
+    function attachItemToTarget(itemRecord, targetKey) {
+      itemRecord.attachment = targetKey;
+      const skin = poseViewer.playerObject.skin;
+      const group = itemRecord.group;
+
+      if (group.parent) group.parent.remove(group);
+
+      if (targetKey === 'rightArm' && skin.rightArm) {
+        skin.rightArm.add(group);
+        group.position.set(0, -10, -2);
+        group.rotation.set(-Math.PI / 4, 0, 0);
+      } else if (targetKey === 'leftArm' && skin.leftArm) {
+        skin.leftArm.add(group);
+        group.position.set(0, -10, -2);
+        group.rotation.set(-Math.PI / 4, 0, 0);
+      } else if (targetKey === 'head' && skin.head) {
+        skin.head.add(group);
+        group.position.set(0, 6, 0);
+        group.rotation.set(0, 0, 0);
+      } else {
+        poseViewer.scene.add(group);
+        group.position.set(10, 0, 0);
+        group.rotation.set(0, 0, 0);
+      }
+      updateGizmoWorldPosition();
+    }
+
+    function updateItemsDropdown() {
+      const select = document.getElementById('itemsSelect');
+      select.innerHTML = '';
+      sceneItems.forEach(it => {
+        const opt = document.createElement('option');
+        opt.value = it.id;
+        opt.textContent = it.name;
+        select.appendChild(opt);
+      });
+      if (activeItemId) select.value = activeItemId;
+    }
+
+    function selectItem(id) {
+      const item = sceneItems.find(it => it.id === id);
+      if (!item) return;
+
+      activeSelectionType = 'item';
+      activeItemId = id;
+      document.getElementById('itemsSelect').value = id;
+      document.getElementById('itemAttachSelect').value = item.attachment;
+      document.getElementById('itemScaleSlider').value = item.scale;
+      document.getElementById('itemScaleValue').textContent = item.scale.toFixed(2);
+      document.getElementById('hudActiveTargetText').textContent = item.name;
+
+      rebuildGizmoMeshes();
+      updateGizmoWorldPosition();
+      updateHighlightBox();
+    }
+
+    function deleteActiveItem() {
+      const idx = sceneItems.findIndex(it => it.id === activeItemId);
+      if (idx === -1) return;
+
+      const item = sceneItems[idx];
+      if (item.group.parent) item.group.parent.remove(item.group);
+      sceneItems.splice(idx, 1);
+
+      updateItemsDropdown();
+      if (sceneItems.length > 0) selectItem(sceneItems[0].id);
+      else selectLimb('head');
+      showToast('Object deleted');
+    }
+
+    document.getElementById('uploadItemObjBtn').onclick = () => document.getElementById('itemObjInput').click();
+    document.getElementById('itemObjInput').onchange = (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        try {
+          const geom = parseWavefrontOBJ(ev.target.result);
+          geom.computeBoundingBox();
+          const size = new THREE.Vector3();
+          geom.boundingBox.getSize(size);
+          const maxDim = Math.max(size.x, size.y, size.z) || 1;
+          const targetScale = 10 / maxDim;
+
+          const mat = new THREE.MeshStandardMaterial({ color: 0xd1d5db, roughness: 0.65, metalness: 0.05 });
+          const mesh = new THREE.Mesh(geom, mat);
+          mesh.castShadow = true;
+          mesh.receiveShadow = true;
+          mesh.scale.set(targetScale, targetScale, targetScale);
+
+          const name = file.name.replace(/\.[^/.]+$/, "");
+          registerItemObject(name, mesh, 'rightArm');
+          showToast(`Imported "${file.name}"`);
+        } catch (err) {
+          showToast('Failed to parse OBJ file');
+        }
+      };
+      reader.readAsText(file);
+    };
+
+    document.getElementById('uploadItemTexBtn').onclick = () => {
+      if (sceneItems.length === 0) {
+        showToast('Import an OBJ file first');
+        return;
+      }
+      document.getElementById('itemTexInput').click();
+    };
+
+    document.getElementById('itemTexInput').onchange = (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        const item = sceneItems.find(it => it.id === activeItemId);
+        if (!item) return;
+
+        const loader = new THREE.TextureLoader();
+        loader.load(ev.target.result, (tex) => {
+          tex.magFilter = THREE.NearestFilter;
+          tex.minFilter = THREE.NearestFilter;
+          tex.colorSpace = THREE.SRGBColorSpace;
+          item.mesh.material.map = tex;
+          item.mesh.material.color.set('#ffffff');
+          item.mesh.material.needsUpdate = true;
+          showToast(`Applied texture to ${item.name}`);
+        });
+      };
+      reader.readAsDataURL(file);
+    };
+
+    document.getElementById('itemsSelect').onchange = (e) => selectItem(e.target.value);
+    document.getElementById('itemAttachSelect').onchange = (e) => {
+      const item = sceneItems.find(it => it.id === activeItemId);
+      if (item) attachItemToTarget(item, e.target.value);
+    };
+    document.getElementById('itemScaleSlider').oninput = (e) => {
+      const item = sceneItems.find(it => it.id === activeItemId);
+      if (item) {
+        const s = parseFloat(e.target.value);
+        item.scale = s;
+        item.group.scale.set(s, s, s);
+        document.getElementById('itemScaleValue').textContent = s.toFixed(2);
+      }
+    };
+    document.getElementById('itemTintPicker').oninput = (e) => {
+      const item = sceneItems.find(it => it.id === activeItemId);
+      if (item && item.mesh.material) {
+        item.mesh.material.color.set(e.target.value);
+      }
+    };
+    document.getElementById('resetItemTransformBtn').onclick = () => {
+      const item = sceneItems.find(it => it.id === activeItemId);
+      if (item) attachItemToTarget(item, item.attachment);
+    };
+    document.getElementById('deleteItemBtn').onclick = deleteActiveItem;
+
+    /* =========================================================
+       LIGHTING ENGINE & SHADOWS
+       ========================================================= */
+    let sceneLights = [];
+    let lightCounter = 1;
+
+    function createLightObject(type, colorHex, intensity, position, shouldSelect = true) {
+      const id = 'light_' + Date.now() + '_' + Math.floor(Math.random() * 1000);
+      const name = (type === 'sun' ? 'Sun Light ' : 'Point Light ') + (lightCounter++);
+      let threeLight = null;
+
+      if (type === 'sun') {
+        threeLight = new THREE.DirectionalLight(colorHex, intensity);
+        threeLight.target.position.set(0, 0, 0);
+        poseViewer.scene.add(threeLight.target);
+
+        threeLight.castShadow = true;
+        threeLight.shadow.mapSize.width = 1024;
+        threeLight.shadow.mapSize.height = 1024;
+        threeLight.shadow.camera.near = 0.5;
+        threeLight.shadow.camera.far = 150;
+        threeLight.shadow.camera.left = -25;
+        threeLight.shadow.camera.right = 25;
+        threeLight.shadow.camera.top = 25;
+        threeLight.shadow.camera.bottom = -25;
+        threeLight.shadow.bias = -0.0005;
+      } else {
+        threeLight = new THREE.PointLight(colorHex, intensity, 80, 0.8);
+        threeLight.castShadow = true;
+        threeLight.shadow.bias = -0.0005;
+      }
+
+      threeLight.position.copy(position);
+      poseViewer.scene.add(threeLight);
+
+      const helperGeom = type === 'sun' 
+        ? new THREE.OctahedronGeometry(1.5, 0)
+        : new THREE.SphereGeometry(1.0, 14, 14);
+      const helperMat = new THREE.MeshBasicMaterial({ color: colorHex, wireframe: true });
+      const helperMesh = new THREE.Mesh(helperGeom, helperMat);
+      helperMesh.position.copy(position);
+      helperMesh.userData = { isLightHelper: true, lightId: id };
+      poseViewer.scene.add(helperMesh);
+
+      const lightItem = {
+        id: id,
+        name: name,
+        type: type,
+        colorHex: colorHex,
+        intensity: intensity,
+        distance: 80,
+        threeLight: threeLight,
+        helperMesh: helperMesh
+      };
+
+      sceneLights.push(lightItem);
+      updateLightsDropdown();
+      if (shouldSelect) selectLight(id);
+      return lightItem;
+    }
+
+    function updateLightsDropdown() {
+      const select = document.getElementById('lightsSelect');
+      select.innerHTML = '';
+      sceneLights.forEach(l => {
+        const opt = document.createElement('option');
+        opt.value = l.id;
+        opt.textContent = l.name;
+        select.appendChild(opt);
+      });
+      if (activeLightId) select.value = activeLightId;
+    }
+
+    function selectLight(id) {
+      const light = sceneLights.find(l => l.id === id);
+      if (!light) return;
+
+      activeSelectionType = 'light';
+      activeLightId = id;
+      document.getElementById('lightsSelect').value = id;
+      document.getElementById('hudActiveTargetText').textContent = light.name;
+      document.getElementById('lightTypeSelect').value = light.type;
+      document.getElementById('lightColorPicker').value = light.colorHex;
+      document.getElementById('lightColorHex').value = light.colorHex.toUpperCase();
+      document.getElementById('lightIntensitySlider').value = light.intensity;
+      document.getElementById('lightIntensityValue').textContent = light.intensity.toFixed(1);
+      document.getElementById('lightDistanceSlider').value = light.distance;
+      document.getElementById('lightDistanceValue').textContent = light.distance;
+      document.getElementById('lightDistanceRow').style.display = light.type === 'point' ? 'block' : 'none';
+
+      if (currentMode !== 'translate') toggleMode();
+      updateGizmoWorldPosition();
+      updateHighlightBox();
+    }
+
+    function updateSelectedLightProperties() {
+      const light = sceneLights.find(l => l.id === activeLightId);
+      if (!light) return;
+
+      const type = document.getElementById('lightTypeSelect').value;
+      const colorHex = document.getElementById('lightColorPicker').value;
+      const intensity = parseFloat(document.getElementById('lightIntensitySlider').value);
+      const distance = parseFloat(document.getElementById('lightDistanceSlider').value);
+
+      document.getElementById('lightIntensityValue').textContent = intensity.toFixed(1);
+      document.getElementById('lightDistanceValue').textContent = distance;
+      document.getElementById('lightDistanceRow').style.display = type === 'point' ? 'block' : 'none';
+
+      if (light.type !== type) {
+        const curPos = light.threeLight.position.clone();
+        poseViewer.scene.remove(light.threeLight);
+        if (type === 'sun') {
+          light.threeLight = new THREE.DirectionalLight(colorHex, intensity);
+          light.threeLight.target.position.set(0, 0, 0);
+          poseViewer.scene.add(light.threeLight.target);
+          light.threeLight.castShadow = true;
+        } else {
+          light.threeLight = new THREE.PointLight(colorHex, intensity, distance, 0.8);
+          light.threeLight.castShadow = true;
+        }
+        light.threeLight.position.copy(curPos);
+        poseViewer.scene.add(light.threeLight);
+        light.type = type;
+      } else {
+        light.threeLight.color.set(colorHex);
+        light.threeLight.intensity = intensity;
+        if (light.type === 'point') {
+          light.threeLight.distance = distance;
+        }
+      }
+
+      light.colorHex = colorHex;
+      light.intensity = intensity;
+      light.distance = distance;
+      light.helperMesh.material.color.set(colorHex);
+    }
+
+    function deleteActiveLight() {
+      if (sceneLights.length <= 1) {
+        showToast('At least one light is required');
+        return;
+      }
+      const idx = sceneLights.findIndex(l => l.id === activeLightId);
+      if (idx === -1) return;
+
+      const light = sceneLights[idx];
+      poseViewer.scene.remove(light.threeLight);
+      poseViewer.scene.remove(light.helperMesh);
+      sceneLights.splice(idx, 1);
+
+      updateLightsDropdown();
+      if (sceneLights.length > 0) selectLight(sceneLights[0].id);
+      else selectLimb('head');
+      showToast('Light removed');
+    }
+
+    function spawnLightInFrontOfCamera() {
+      const camDir = new THREE.Vector3();
+      poseViewer.camera.getWorldDirection(camDir);
+      const spawnPos = poseViewer.camera.position.clone().addScaledVector(camDir, 16);
+      createLightObject('point', '#ffffff', 2.5, spawnPos, true);
+      showToast('Light placed in scene');
+    }
+
+    function moveActiveLightToCamera() {
+      const light = sceneLights.find(l => l.id === activeLightId);
+      if (!light) return;
+      const camDir = new THREE.Vector3();
+      poseViewer.camera.getWorldDirection(camDir);
+      const pos = poseViewer.camera.position.clone().addScaledVector(camDir, 14);
+      light.threeLight.position.copy(pos);
+      light.helperMesh.position.copy(pos);
+      updateGizmoWorldPosition();
+      showToast('Snapped light to view');
+    }
+
+    function updateCharacterMaterials() {
+      if (!poseViewer || !poseViewer.playerObject) return;
+      poseViewer.playerObject.traverse(c => {
+        if (c.isMesh) {
+          c.castShadow = true;
+          c.receiveShadow = true;
+          if (c.material) {
+            c.material.roughness = 0.65;
+            c.material.metalness = 0.05;
+            c.material.needsUpdate = true;
+          }
+        }
+      });
+    }
+
+    async function loadSkinSafely(skinSource) {
+      if (!poseViewer) return;
+      try {
+        await poseViewer.loadSkin(skinSource);
+        lastLoadedSkin = skinSource;
+        updateCharacterMaterials();
+      } catch (e) {
+        try {
+          const steve = generateSteveDataUrl();
+          await poseViewer.loadSkin(steve);
+          lastLoadedSkin = steve;
+          updateCharacterMaterials();
+        } catch (err) {}
+      }
+    }
+
+    let grid = null;
+    let shadowPlane = null;
+
     function initStudio() {
       const container = document.getElementById('viewportContainer');
       const canvas = document.getElementById('pose3d-canvas');
       const interactionLayer = document.getElementById('viewportInteractionLayer');
 
-      // Prevent default right-click menu
       interactionLayer.addEventListener('contextmenu', (e) => e.preventDefault());
 
-      // 1. Guaranteed skin loading
-      let initialSkin = localStorage.getItem('minecraft_active_skin');
+      let initialSkin = null;
+      try {
+        initialSkin = localStorage.getItem('minecraft_active_skin');
+      } catch (e) {}
+
       if (!initialSkin || initialSkin.length < 100 || !initialSkin.startsWith('data:image')) {
         initialSkin = generateSteveDataUrl();
         try { localStorage.setItem('minecraft_active_skin', initialSkin); } catch (e) {}
       }
 
-      // Initialize SkinViewer
       poseViewer = new skinview3d.SkinViewer({
         canvas: canvas,
         width: container.clientWidth || window.innerWidth,
-        height: container.clientHeight || (window.innerHeight - 54),
+        height: container.clientHeight || (window.innerHeight - 40),
         skin: initialSkin,
         preserveDrawingBuffer: true
       });
 
-      // Defensively remove any internal listeners
+      poseViewer.renderer.shadowMap.enabled = true;
+      poseViewer.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+
       if (poseViewer.controls) {
         try {
           if (typeof poseViewer.controls.dispose === 'function') poseViewer.controls.dispose();
@@ -532,30 +1161,121 @@
         poseViewer.controls = null;
       }
 
-      // Camera initialization
       updateCameraFromSpherical();
-
-      // Record Joint Pivots
       setupJointPivots();
 
-      // Studio Floor Grid (Moon Animator Baseplate)
-      const grid = new THREE.GridHelper(100, 50, 0x38bdf8, 0x22324d);
+      // Studio Ground Grid
+      grid = new THREE.GridHelper(100, 50, 0x3b4252, 0x1a1d24);
       grid.position.y = -16.02;
       poseViewer.scene.add(grid);
 
-      // Lighting
-      setupLighting();
+      // Shadow Floor Plane
+      const shadowPlaneGeo = new THREE.PlaneGeometry(100, 100);
+      const shadowPlaneMat = new THREE.ShadowMaterial({ opacity: 0.35 });
+      shadowPlane = new THREE.Mesh(shadowPlaneGeo, shadowPlaneMat);
+      shadowPlane.rotation.x = -Math.PI / 2;
+      shadowPlane.position.y = -16.01;
+      shadowPlane.receiveShadow = true;
+      poseViewer.scene.add(shadowPlane);
 
-      // Moon Animator Visuals: Orange Wireframe Outline & 3D Gizmos
-      setupOrangeBoundingBox();
+      setupBoundingBox();
       setupGizmoVisuals();
 
-      // Viewport Interaction on the isolated Interaction Layer
+      if (poseViewer.cameraLight) poseViewer.cameraLight.intensity = 0.0;
+      if (poseViewer.globalLight) poseViewer.globalLight.intensity = 0.2;
+
+      createLightObject('sun', '#ffffff', 2.2, new THREE.Vector3(18, 30, 18), false);
+      createLightObject('point', '#38bdf8', 2.0, new THREE.Vector3(-14, 8, 12), false);
+
       setup3DViewportInteraction(interactionLayer);
 
-      // Start on Head
       selectLimb('head');
+      updateCharacterMaterials();
+
+      // Record initial pose in history
+      recordHistory();
+
+      function renderLoop() {
+        handleKeyboardNavigation();
+        if (poseViewer) {
+          poseViewer.render();
+        }
+        requestAnimationFrame(renderLoop);
+      }
+      requestAnimationFrame(renderLoop);
+
+      loadSkinSafely(initialSkin);
     }
+
+    function handleKeyboardNavigation() {
+      if (!poseViewer || !poseViewer.camera) return;
+      if (document.activeElement && (document.activeElement.tagName === 'INPUT' || document.activeElement.tagName === 'SELECT')) {
+        return;
+      }
+
+      const moveSpeed = 0.5;
+      const camForward = new THREE.Vector3();
+      poseViewer.camera.getWorldDirection(camForward);
+      const camRight = new THREE.Vector3().crossVectors(camForward, poseViewer.camera.up).normalize();
+
+      let moved = false;
+      if (keysDown.w) { camTarget.addScaledVector(camForward, moveSpeed); moved = true; }
+      if (keysDown.s) { camTarget.addScaledVector(camForward, -moveSpeed); moved = true; }
+      if (keysDown.a) { camTarget.addScaledVector(camRight, -moveSpeed); moved = true; }
+      if (keysDown.d) { camTarget.addScaledVector(camRight, moveSpeed); moved = true; }
+      if (keysDown.q) { camTarget.y -= moveSpeed; moved = true; }
+      if (keysDown.e) { camTarget.y += moveSpeed; moved = true; }
+
+      if (moved) updateCameraFromSpherical();
+    }
+
+    window.addEventListener('keydown', (e) => {
+      if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT') return;
+
+      // History Hotkeys (Ctrl+Z / Ctrl+Y)
+      if (e.ctrlKey || e.metaKey) {
+        if (e.key.toLowerCase() === 'z') {
+          e.preventDefault();
+          if (e.shiftKey) redo();
+          else undo();
+          return;
+        }
+        if (e.key.toLowerCase() === 'y') {
+          e.preventDefault();
+          redo();
+          return;
+        }
+      }
+
+      if (e.key === 'Escape') {
+        selectLimb('head');
+        return;
+      }
+
+      const k = e.key.toLowerCase();
+      if (k in keysDown) keysDown[k] = true;
+      if (k === 'r') toggleMode();
+      if (k === 'y') toggleSpace();
+    });
+
+    window.addEventListener('keyup', (e) => {
+      const k = e.key.toLowerCase();
+      if (k in keysDown) keysDown[k] = false;
+    });
+
+    window.addEventListener('blur', () => {
+      for (const k in keysDown) keysDown[k] = false;
+    });
+
+    window.addEventListener('focus', () => {
+      try {
+        const stored = localStorage.getItem('minecraft_active_skin');
+        if (stored && stored !== lastLoadedSkin && stored.startsWith('data:image')) {
+          loadSkinSafely(stored);
+          showToast('Updated skin from Studio');
+        }
+      } catch (e) {}
+    });
 
     function updateCameraFromSpherical() {
       if (!poseViewer) return;
@@ -567,9 +1287,8 @@
       const cp = poseViewer.camera.position;
       const readout = document.getElementById('camCoordsText');
       if (readout) {
-        readout.textContent = `Cam: X: ${cp.x.toFixed(1)}, Y: ${cp.y.toFixed(1)}, Z: ${cp.z.toFixed(1)}`;
+        readout.textContent = `Cam: ${cp.x.toFixed(1)}, ${cp.y.toFixed(1)}, ${cp.z.toFixed(1)}`;
       }
-      poseViewer.render();
     }
 
     function setupJointPivots() {
@@ -580,29 +1299,18 @@
       limbs.forEach(k => {
         if (skin[k]) {
           limbOffsets[k].basePos.copy(skin[k].position);
+          limbOffsets[k].baseRot.copy(skin[k].rotation);
         }
       });
       limbOffsets.root.basePos.copy(poseViewer.playerObject.position);
     }
 
-    function setupLighting() {
-      if (poseViewer.globalLight) poseViewer.globalLight.intensity = 0.65;
-      if (poseViewer.cameraLight) poseViewer.cameraLight.intensity = 0.55;
-
-      const sun = new THREE.DirectionalLight(0xfff5e6, 1.4);
-      sun.position.set(30, 45, 30);
-      poseViewer.scene.add(sun);
-    }
-
-    /* =========================================================
-       3. ORANGE BOUNDING BOX HIGHLIGHT (From Screenshots 1, 2, 4)
-       ========================================================= */
     let highlightWireframeBox = null;
 
-    function setupOrangeBoundingBox() {
+    function setupBoundingBox() {
       const geom = new THREE.BoxGeometry(1, 1, 1);
       const edges = new THREE.EdgesGeometry(geom);
-      const mat = new THREE.LineBasicMaterial({ color: 0xf59e0b, linewidth: 2, depthTest: false });
+      const mat = new THREE.LineBasicMaterial({ color: 0x94a3b8, linewidth: 1, depthTest: false });
       highlightWireframeBox = new THREE.LineSegments(edges, mat);
       highlightWireframeBox.renderOrder = 9998;
       poseViewer.scene.add(highlightWireframeBox);
@@ -610,98 +1318,91 @@
 
     function updateHighlightBox() {
       if (!highlightWireframeBox) return;
-      const obj = getLimbObject(activeLimbKey);
+      if (activeSelectionType !== 'limb') {
+        highlightWireframeBox.visible = false;
+        return;
+      }
+
+      const obj = getActiveTransformObject();
       if (!obj) {
         highlightWireframeBox.visible = false;
         return;
       }
       highlightWireframeBox.visible = true;
 
+      let size = new THREE.Vector3(8.4, 8.4, 8.4);
+      let localCenter = new THREE.Vector3(0, 0, 0);
+
       if (activeLimbKey === 'head') {
-        highlightWireframeBox.scale.set(8.4, 8.4, 8.4);
+        size.set(8.4, 8.4, 8.4);
+        localCenter.set(0, 4, 0);
       } else if (activeLimbKey === 'body') {
-        highlightWireframeBox.scale.set(8.4, 12.4, 4.4);
+        size.set(8.4, 12.4, 4.4);
+        localCenter.set(0, 6, 0);
       } else if (activeLimbKey === 'rightArm' || activeLimbKey === 'leftArm') {
-        highlightWireframeBox.scale.set(4.4, 12.4, 4.4);
+        size.set(4.4, 12.4, 4.4);
+        localCenter.set(0, -4, 0);
       } else if (activeLimbKey === 'rightLeg' || activeLimbKey === 'leftLeg') {
-        highlightWireframeBox.scale.set(4.4, 12.4, 4.4);
+        size.set(4.4, 12.4, 4.4);
+        localCenter.set(0, -6, 0);
       } else {
-        highlightWireframeBox.scale.set(16.5, 32.5, 8.5);
+        size.set(16.5, 32.5, 8.5);
+        localCenter.set(0, 0, 0);
       }
 
+      highlightWireframeBox.scale.copy(size);
+
+      const worldQuat = new THREE.Quaternion();
+      obj.getWorldQuaternion(worldQuat);
+
+      const worldCenter = localCenter.clone().applyQuaternion(worldQuat);
       const worldPos = new THREE.Vector3();
       obj.getWorldPosition(worldPos);
 
-      if (activeLimbKey === 'head') worldPos.y += 4;
-      else if (activeLimbKey === 'body') worldPos.y += 6;
-      else if (activeLimbKey === 'rightArm' || activeLimbKey === 'leftArm') worldPos.y -= 4;
-      else if (activeLimbKey === 'rightLeg' || activeLimbKey === 'leftLeg') worldPos.y -= 6;
-
-      highlightWireframeBox.position.copy(worldPos);
-
-      if (currentSpace === 'local' && activeLimbKey !== 'root') {
-        const worldQuat = new THREE.Quaternion();
-        obj.getWorldQuaternion(worldQuat);
-        highlightWireframeBox.quaternion.copy(worldQuat);
-      } else {
-        highlightWireframeBox.rotation.set(0, 0, 0);
-      }
+      highlightWireframeBox.position.copy(worldPos).add(worldCenter);
+      highlightWireframeBox.quaternion.copy(worldQuat);
     }
 
-    /* =========================================================
-       4. MOON ANIMATOR 3D GIZMOS:
-          - RED DOTS AT 45° ANGLES (NO OVERLAPPING OR COLLISION)
-          - ONLY THE SPHERE DOTS TRIGGER ROTATION
-          - ARROWS MOVE
-       ========================================================= */
     let gizmoRoot = null;
-    let gizmoInteractiveHandles = []; // ONLY meshes in this array are raycasted
+    let gizmoInteractiveHandles = [];
 
     function setupGizmoVisuals() {
       gizmoRoot = new THREE.Group();
-      gizmoRoot.name = "MoonGizmoRoot";
       poseViewer.scene.add(gizmoRoot);
       rebuildGizmoMeshes();
     }
 
     function rebuildGizmoMeshes() {
+      if (!gizmoRoot) return;
       while (gizmoRoot.children.length > 0) {
         gizmoRoot.remove(gizmoRoot.children[0]);
       }
       gizmoInteractiveHandles = [];
 
-      // Center Pivot Dot (Visual anchor only)
-      const centerSphereGeom = new THREE.SphereGeometry(0.35, 14, 14);
-      const centerSphereMat = new THREE.MeshBasicMaterial({ color: 0xf59e0b, depthTest: false });
+      const centerSphereGeom = new THREE.SphereGeometry(0.3, 12, 12);
+      const centerSphereMat = new THREE.MeshBasicMaterial({ color: 0xffffff, depthTest: false });
       const centerPivot = new THREE.Mesh(centerSphereGeom, centerSphereMat);
       centerPivot.renderOrder = 9999;
-      centerPivot.raycast = () => {}; // NON-INTERACTIVE
+      centerPivot.raycast = () => {};
       gizmoRoot.add(centerPivot);
 
-      if (currentMode === 'rotate') {
-        const radius = 4.2;
-        const tube = 0.07;
+      if (currentMode === 'rotate' && activeSelectionType !== 'light') {
+        const radius = 4.4;
+        const tube = 0.05;
 
-        // RED RING (X-Axis): Placed at 45° angles (45°, 135°, 225°, 315°)
-        // This ensures the red spheres NEVER collide with green and blue!
         const redAngles = [Math.PI / 4, 3 * Math.PI / 4, 5 * Math.PI / 4, 7 * Math.PI / 4];
         const ringX = createRotationRing(radius, tube, 0xef4444, 'x', [0, Math.PI / 2, 0], redAngles);
-
-        // GREEN RING (Y-Axis): Placed at front & back along Z-axis (90° and 270°)
         const greenAngles = [Math.PI / 2, 3 * Math.PI / 2];
         const ringY = createRotationRing(radius, tube, 0x10b981, 'y', [Math.PI / 2, 0, 0], greenAngles);
-
-        // BLUE RING (Z-Axis): Placed at top, bottom, left, right in XY plane (0°, 90°, 180°, 270°)
         const blueAngles = [0, Math.PI / 2, Math.PI, 3 * Math.PI / 2];
-        const ringZ = createRotationRing(radius, tube, 0x38bdf8, 'z', [0, 0, 0], blueAngles);
+        const ringZ = createRotationRing(radius, tube, 0x3b82f6, 'z', [0, 0, 0], blueAngles);
 
         gizmoRoot.add(ringX, ringY, ringZ);
       } else {
-        // --- TRANSLATION MOVE ARROWS ---
-        const length = 5.5;
+        const length = 5.2;
         const arrowX = createMoveArrow(length, 0xef4444, 'x', [0, 0, -Math.PI / 2]);
         const arrowY = createMoveArrow(length, 0x10b981, 'y', [0, 0, 0]);
-        const arrowZ = createMoveArrow(length, 0x38bdf8, 'z', [Math.PI / 2, 0, 0]);
+        const arrowZ = createMoveArrow(length, 0x3b82f6, 'z', [Math.PI / 2, 0, 0]);
 
         gizmoRoot.add(arrowX, arrowY, arrowZ);
       }
@@ -712,26 +1413,23 @@
 
     function createRotationRing(radius, tube, hex, axis, rot, angles) {
       const group = new THREE.Group();
-
-      // The circular line is purely visual (RAYCASTING DISABLED)
-      const geom = new THREE.TorusGeometry(radius, tube, 8, 64);
-      const mat = new THREE.MeshBasicMaterial({ color: hex, depthTest: false, transparent: true, opacity: 0.55 });
+      const geom = new THREE.TorusGeometry(radius, tube, 6, 48);
+      const mat = new THREE.MeshBasicMaterial({ color: hex, depthTest: false, transparent: true, opacity: 0.5 });
       const ringLine = new THREE.Mesh(geom, mat);
       ringLine.renderOrder = 9998;
-      ringLine.raycast = () => {}; // CLICKING THE LINE DOES NOTHING!
+      ringLine.raycast = () => {};
       group.add(ringLine);
 
-      // ONLY THE DOTS / SPHERES ON THE RING TRIGGER ROTATION
-      const sphGeom = new THREE.SphereGeometry(0.55, 14, 14);
+      const sphGeom = new THREE.SphereGeometry(0.5, 12, 12);
       const sphMat = new THREE.MeshBasicMaterial({ color: hex, depthTest: false });
 
       angles.forEach(ang => {
         const dot = new THREE.Mesh(sphGeom, sphMat);
         dot.position.set(radius * Math.cos(ang), radius * Math.sin(ang), 0);
         dot.renderOrder = 9999;
-        dot.userData = { axis: axis, mode: 'rotate', isGripDot: true };
+        dot.userData = { axis: axis, mode: 'rotate' };
         group.add(dot);
-        gizmoInteractiveHandles.push(dot); // ONLY DOTS ARE INTERACTIVE
+        gizmoInteractiveHandles.push(dot);
       });
 
       group.rotation.set(rot[0], rot[1], rot[2]);
@@ -740,13 +1438,13 @@
 
     function createMoveArrow(length, hex, axis, rot) {
       const group = new THREE.Group();
-      const shaftGeom = new THREE.CylinderGeometry(0.12, 0.12, length, 12);
-      const mat = new THREE.MeshBasicMaterial({ color: hex, depthTest: false, transparent: true, opacity: 0.95 });
+      const shaftGeom = new THREE.CylinderGeometry(0.1, 0.1, length, 8);
+      const mat = new THREE.MeshBasicMaterial({ color: hex, depthTest: false });
       const shaft = new THREE.Mesh(shaftGeom, mat);
       shaft.position.y = length / 2;
       shaft.renderOrder = 9999;
 
-      const coneGeom = new THREE.ConeGeometry(0.45, 1.3, 16);
+      const coneGeom = new THREE.ConeGeometry(0.4, 1.2, 12);
       const cone = new THREE.Mesh(coneGeom, mat);
       cone.position.y = length;
       cone.renderOrder = 9999;
@@ -762,15 +1460,23 @@
       return group;
     }
 
-    function getLimbObject(key) {
+    function getActiveTransformObject() {
+      if (activeSelectionType === 'light') {
+        const light = sceneLights.find(l => l.id === activeLightId);
+        return light ? light.threeLight : null;
+      }
+      if (activeSelectionType === 'item') {
+        const item = sceneItems.find(it => it.id === activeItemId);
+        return item ? item.group : null;
+      }
       if (!poseViewer || !poseViewer.playerObject || !poseViewer.playerObject.skin) return null;
-      if (key === 'root') return poseViewer.playerObject;
-      return poseViewer.playerObject.skin[key] || null;
+      if (activeLimbKey === 'root') return poseViewer.playerObject;
+      return poseViewer.playerObject.skin[activeLimbKey] || null;
     }
 
     function updateGizmoWorldPosition() {
       if (!gizmoRoot) return;
-      const obj = getLimbObject(activeLimbKey);
+      const obj = getActiveTransformObject();
       if (!obj) {
         gizmoRoot.visible = false;
         return;
@@ -781,7 +1487,7 @@
       obj.getWorldPosition(worldPos);
       gizmoRoot.position.copy(worldPos);
 
-      if (currentSpace === 'local' && activeLimbKey !== 'root') {
+      if (currentSpace === 'local' && (activeSelectionType === 'limb' || activeSelectionType === 'item')) {
         const worldQuat = new THREE.Quaternion();
         obj.getWorldQuaternion(worldQuat);
         gizmoRoot.quaternion.copy(worldQuat);
@@ -790,19 +1496,12 @@
       }
     }
 
-    /* =========================================================
-       5. VIEWPORT INTERACTION:
-          - RIGHT-CLICK DRAG: LOOK AROUND (CAMERA ONLY)
-          - LEFT-CLICK: DRAG GIZMO OR SELECT LIMB (NEVER TOUCHES CAMERA)
-          - 3D PROJECTION MATH FOR MOVEMENT & ROTATION
-       ========================================================= */
     function setup3DViewportInteraction(interactionLayer) {
       const raycaster = new THREE.Raycaster();
       const mouse = new THREE.Vector2();
 
       let isDraggingGizmo = false;
       let dragAxis = null;
-      
       let startHitWorld = new THREE.Vector3();
       let startPivotWorld = new THREE.Vector3();
       let startLimbPos = new THREE.Vector3();
@@ -818,26 +1517,23 @@
         raycaster.setFromCamera(mouse, poseViewer.camera);
       }
 
-      // MOUSE DOWN
       interactionLayer.addEventListener('mousedown', (e) => {
-        // 1. RIGHT-CLICK ONLY: Start Looking Around
         if (e.button === 2) {
           isRightDraggingCamera = true;
           lastRightMouse = { x: e.clientX, y: e.clientY };
           return;
         }
 
-        // 2. LEFT-CLICK ONLY: Handle 3D Gizmo or Limb Selection
         if (e.button === 0) {
           updateRay(e.clientX, e.clientY);
 
-          // Raycast against interactive gizmo handles (DOTS for rotate, ARROWS for move)
+          // 1. Raycast Gizmos
           const gizmoHits = raycaster.intersectObjects(gizmoInteractiveHandles, true);
           if (gizmoHits.length > 0) {
             isDraggingGizmo = true;
             dragAxis = gizmoHits[0].object.userData.axis;
 
-            const obj = getLimbObject(activeLimbKey);
+            const obj = getActiveTransformObject();
             startLimbPos.copy(obj.position);
             startLimbQuat.copy(obj.quaternion);
 
@@ -865,10 +1561,39 @@
             return;
           }
 
-          // Raycast against player body parts to SELECT limb
+          // 2. Raycast Objects
+          const itemMeshes = [];
+          sceneItems.forEach(it => {
+            it.group.traverse(child => { if (child.isMesh) itemMeshes.push(child); });
+          });
+          const itemHits = raycaster.intersectObjects(itemMeshes, true);
+          if (itemHits.length > 0) {
+            let hitObj = itemHits[0].object;
+            while (hitObj && !hitObj.userData.isItemWrapper) {
+              hitObj = hitObj.parent;
+            }
+            if (hitObj && hitObj.userData.itemId) {
+              switchTab('item');
+              selectItem(hitObj.userData.itemId);
+              showToast(`Selected: ${hitObj.name}`);
+              return;
+            }
+          }
+
+          // 3. Raycast Lights
+          const lightHelperMeshes = sceneLights.map(l => l.helperMesh);
+          const lightHits = raycaster.intersectObjects(lightHelperMeshes, false);
+          if (lightHits.length > 0) {
+            const hitLightId = lightHits[0].object.userData.lightId;
+            switchTab('light');
+            selectLight(hitLightId);
+            return;
+          }
+
+          // 4. Raycast Character Limbs
           const playerMeshes = [];
           poseViewer.playerObject.traverse(c => {
-            if (c.isMesh && c.visible) playerMeshes.push(c);
+            if (c.isMesh && c.visible && !c.userData.isItemWrapper) playerMeshes.push(c);
           });
 
           const playerHits = raycaster.intersectObjects(playerMeshes, false);
@@ -881,6 +1606,7 @@
               let found = false;
               skin[key].traverse(c => { if (c === hitMesh) found = true; });
               if (found) {
+                switchTab('rig');
                 selectLimb(key);
                 showToast(`Selected: ${limbDisplayNames[key]}`);
                 return;
@@ -890,12 +1616,9 @@
         }
       });
 
-      // MOUSE MOVE
       window.addEventListener('mousemove', (e) => {
-        // HARDWARE BITMASK: Check if RIGHT mouse button is currently held down
         const isRightHeld = (e.buttons & 2) !== 0;
 
-        // 1. RIGHT-CLICK: Look Around (Camera ONLY)
         if (isRightDraggingCamera && isRightHeld) {
           const dx = e.clientX - lastRightMouse.x;
           const dy = e.clientY - lastRightMouse.y;
@@ -909,28 +1632,24 @@
           isRightDraggingCamera = false;
         }
 
-        // HARDWARE BITMASK: Check if LEFT mouse button is currently held down
         const isLeftHeld = (e.buttons & 1) !== 0;
-
-        // 2. LEFT-CLICK: Drag Gizmo
         if (!isDraggingGizmo || !isLeftHeld) {
           isDraggingGizmo = false;
           return;
         }
 
-        const obj = getLimbObject(activeLimbKey);
+        const obj = getActiveTransformObject();
         if (!obj) return;
 
         updateRay(e.clientX, e.clientY);
 
         if (currentMode === 'translate') {
-          // --- POSITION TRANSLATION (MOVE ARROWS) ---
           const currentHitWorld = new THREE.Vector3();
           if (raycaster.ray.intersectPlane(activeConstraintPlane, currentHitWorld)) {
             const worldDelta = currentHitWorld.sub(startHitWorld);
             const distance = worldDelta.dot(axisWorldDir);
 
-            if (currentSpace === 'local' && activeLimbKey !== 'root' && obj.parent) {
+            if (currentSpace === 'local' && obj.parent) {
               const parentQuatInv = obj.parent.getWorldQuaternion(new THREE.Quaternion()).invert();
               const localDisplacement = axisWorldDir.clone().multiplyScalar(distance).applyQuaternion(parentQuatInv);
               obj.position.copy(startLimbPos).add(localDisplacement);
@@ -938,10 +1657,14 @@
               obj.position.copy(startLimbPos).add(axisWorldDir.clone().multiplyScalar(distance));
             }
 
+            if (activeSelectionType === 'light') {
+              const light = sceneLights.find(l => l.id === activeLightId);
+              if (light) light.helperMesh.position.copy(obj.position);
+            }
+
             document.getElementById('hudValueText').textContent = (distance >= 0 ? '+' : '') + distance.toFixed(3);
           }
         } else {
-          // --- JOINT ROTATION (DOTS ONLY) ---
           const currentHitWorld = new THREE.Vector3();
           if (raycaster.ray.intersectPlane(activeConstraintPlane, currentHitWorld)) {
             const currentRotVec = currentHitWorld.sub(startPivotWorld).normalize();
@@ -951,7 +1674,7 @@
               const dot = Math.max(-1, Math.min(1, startRotVec.dot(currentRotVec)));
               let signedAngle = Math.atan2(cross.dot(axisWorldDir), dot);
 
-              if (currentSpace === 'local' && activeLimbKey !== 'root') {
+              if (currentSpace === 'local') {
                 const localAxis = new THREE.Vector3(
                   dragAxis === 'x' ? 1 : 0,
                   dragAxis === 'y' ? 1 : 0,
@@ -972,19 +1695,18 @@
 
         updateGizmoWorldPosition();
         updateHighlightBox();
-        poseViewer.render();
       });
 
-      // MOUSE UP
-      window.addEventListener('mouseup', (e) => {
-        if ((e.buttons & 2) === 0) isRightDraggingCamera = false;
-        if ((e.buttons & 1) === 0) {
+      window.addEventListener('mouseup', () => {
+        isRightDraggingCamera = false;
+        if (isDraggingGizmo) {
           isDraggingGizmo = false;
           dragAxis = null;
+          // Record transformation into history
+          recordHistory();
         }
       });
 
-      // MOUSE WHEEL ZOOM
       interactionLayer.addEventListener('wheel', (e) => {
         e.preventDefault();
         camRadius = Math.max(12, Math.min(150, camRadius + e.deltaY * 0.05));
@@ -998,8 +1720,8 @@
       else if (axisKey === 'y') dir.set(0, 1, 0);
       else if (axisKey === 'z') dir.set(0, 0, 1);
 
-      if (currentSpace === 'local' && activeLimbKey !== 'root') {
-        const obj = getLimbObject(activeLimbKey);
+      if (currentSpace === 'local' && (activeSelectionType === 'limb' || activeSelectionType === 'item')) {
+        const obj = getActiveTransformObject();
         if (obj) {
           const quat = new THREE.Quaternion();
           obj.getWorldQuaternion(quat);
@@ -1010,27 +1732,24 @@
     }
 
     function selectLimb(key) {
+      activeSelectionType = 'limb';
       activeLimbKey = key;
-      document.getElementById('hudActiveLimbText').textContent = limbDisplayNames[key];
+      document.getElementById('hudActiveTargetText').textContent = limbDisplayNames[key];
       document.querySelectorAll('.btn-limb').forEach(btn => {
         btn.classList.toggle('active', btn.dataset.limb === key);
       });
       document.getElementById('hudValueText').textContent = '0.000';
+      rebuildGizmoMeshes();
       updateGizmoWorldPosition();
       updateHighlightBox();
-      poseViewer.render();
     }
 
-    /* =========================================================
-       6. TOGGLE MODE (STRICTLY VIA 'R' KEY / EXPLICIT HUD CLICK)
-       ========================================================= */
     function toggleMode() {
       currentMode = currentMode === 'rotate' ? 'translate' : 'rotate';
       const isRot = currentMode === 'rotate';
       document.getElementById('hudModeText').textContent = isRot ? 'Rotation' : 'Position';
       rebuildGizmoMeshes();
-      showToast(`Mode (R): ${isRot ? 'Rotation (Dots)' : 'Position (Arrows)'}`);
-      poseViewer.render();
+      showToast(`Mode: ${isRot ? 'Rotation' : 'Position'}`);
     }
 
     function toggleSpace() {
@@ -1039,42 +1758,66 @@
       document.getElementById('hudSpaceText').textContent = label;
       updateGizmoWorldPosition();
       updateHighlightBox();
-      showToast(`Space (Y): ${label}`);
-      poseViewer.render();
+      showToast(`Space: ${label}`);
     }
 
-    // HOTKEYS: ONLY 'R' KEY CHANGES POSE MODE
-    window.addEventListener('keydown', (e) => {
-      if (e.target.tagName === 'INPUT') return;
-      const k = e.key.toLowerCase();
-      if (k === 'r') toggleMode();
-      if (k === 'y') toggleSpace();
-    });
+    function switchTab(tabName) {
+      document.getElementById('tabRigBtn').classList.toggle('active', tabName === 'rig');
+      document.getElementById('tabLightBtn').classList.toggle('active', tabName === 'light');
+      document.getElementById('tabItemBtn').classList.toggle('active', tabName === 'item');
+      
+      document.getElementById('rigPanelContent').style.display = tabName === 'rig' ? 'flex' : 'none';
+      document.getElementById('lightPanelContent').style.display = tabName === 'light' ? 'flex' : 'none';
+      document.getElementById('itemPanelContent').style.display = tabName === 'item' ? 'flex' : 'none';
+
+      if (tabName === 'light' && sceneLights.length > 0) selectLight(sceneLights[0].id);
+      else if (tabName === 'item' && sceneItems.length > 0) selectItem(sceneItems[0].id);
+      else if (tabName === 'rig') selectLimb(activeLimbKey);
+    }
+
+    document.getElementById('tabRigBtn').onclick = () => switchTab('rig');
+    document.getElementById('tabLightBtn').onclick = () => switchTab('light');
+    document.getElementById('tabItemBtn').onclick = () => switchTab('item');
 
     document.getElementById('hudToggleModeBtn').onclick = toggleMode;
     document.getElementById('hudToggleSpaceBtn').onclick = toggleSpace;
 
-    /* =========================================================
-       7. LIMB MENU ACTIONS & ZEROING
-       ========================================================= */
     document.querySelectorAll('.btn-limb').forEach(btn => {
       btn.onclick = () => selectLimb(btn.dataset.limb);
     });
 
     document.getElementById('zeroSelectedBtn').onclick = () => {
-      const obj = getLimbObject(activeLimbKey);
-      if (!obj) return;
+      const obj = getActiveTransformObject();
+      if (!obj || activeSelectionType !== 'limb') return;
       obj.rotation.set(0, 0, 0);
       if (activeLimbKey !== 'root') {
         obj.position.copy(limbOffsets[activeLimbKey].basePos);
       }
       updateGizmoWorldPosition();
       updateHighlightBox();
-      poseViewer.render();
-      showToast(`Zeroed ${limbDisplayNames[activeLimbKey]}`);
+      recordHistory();
+      showToast(`Zeroed: ${limbDisplayNames[activeLimbKey]}`);
     };
 
-    document.getElementById('resetAllBtn').onclick = () => {
+    document.getElementById('tposeBtn').onclick = () => {
+      Object.keys(limbOffsets).forEach(k => {
+        const obj = getLimbObject(k);
+        if (obj) {
+          obj.rotation.set(0, 0, 0);
+          obj.position.copy(limbOffsets[k].basePos);
+        }
+      });
+      const skin = poseViewer.playerObject.skin;
+      if (skin.rightArm) skin.rightArm.rotation.z = Math.PI / 2;
+      if (skin.leftArm) skin.leftArm.rotation.z = -Math.PI / 2;
+
+      updateGizmoWorldPosition();
+      updateHighlightBox();
+      recordHistory();
+      showToast('T-Pose');
+    };
+
+    document.getElementById('restPoseBtn').onclick = () => {
       Object.keys(limbOffsets).forEach(k => {
         const obj = getLimbObject(k);
         if (obj) {
@@ -1084,11 +1827,37 @@
       });
       updateGizmoWorldPosition();
       updateHighlightBox();
-      poseViewer.render();
-      showToast('Reset character to T-Pose');
+      recordHistory();
+      showToast('Rest Pose');
     };
 
-    // Camera Snapshot Grabber
+    function getLimbObject(key) {
+      if (!poseViewer || !poseViewer.playerObject || !poseViewer.playerObject.skin) return null;
+      if (key === 'root') return poseViewer.playerObject;
+      return poseViewer.playerObject.skin[key] || null;
+    }
+
+    document.getElementById('addLightBtn').onclick = spawnLightInFrontOfCamera;
+    document.getElementById('lightsSelect').onchange = (e) => selectLight(e.target.value);
+    document.getElementById('lightTypeSelect').onchange = updateSelectedLightProperties;
+    document.getElementById('lightColorPicker').oninput = (e) => {
+      document.getElementById('lightColorHex').value = e.target.value.toUpperCase();
+      updateSelectedLightProperties();
+    };
+    document.getElementById('lightColorHex').onchange = (e) => {
+      let val = e.target.value;
+      if (!val.startsWith('#')) val = '#' + val;
+      if (/^#[0-9A-F]{6}$/i.test(val)) {
+        document.getElementById('lightColorPicker').value = val;
+        updateSelectedLightProperties();
+      }
+    };
+    document.getElementById('lightIntensitySlider').oninput = updateSelectedLightProperties;
+    document.getElementById('lightDistanceSlider').oninput = updateSelectedLightProperties;
+    document.getElementById('deleteLightBtn').onclick = deleteActiveLight;
+    document.getElementById('moveLightToCamBtn').onclick = moveActiveLightToCamera;
+
+    /* Snapshot Exporter: Completely hides the ground grid and gizmos */
     document.getElementById('takePictureBtn').onclick = () => {
       if (!poseViewer) return;
       const cp = poseViewer.camera.position;
@@ -1096,41 +1865,50 @@
       const posY = cp.y.toFixed(1);
       const posZ = cp.z.toFixed(1);
 
-      // Hide gizmo handles for clean snapshot
+      // Hide ground grid, shadow plane, and gizmos for clean render
+      grid.visible = false;
+      shadowPlane.visible = false;
       gizmoRoot.visible = false;
       highlightWireframeBox.visible = false;
+      sceneLights.forEach(l => { l.helperMesh.visible = false; });
       poseViewer.render();
-      const dataUrl = poseViewer.renderer.domElement.toDataURL('image/png');
-      gizmoRoot.visible = true;
-      highlightWireframeBox.visible = true;
 
-      const filename = `minecraft_pose_cam_X${posX}_Y${posY}_Z${posZ}.png`;
+      const dataUrl = poseViewer.renderer.domElement.toDataURL('image/png');
+
+      // Restore scene visibility
+      grid.visible = true;
+      shadowPlane.visible = true;
+      gizmoRoot.visible = true;
+      if (activeSelectionType === 'limb') highlightWireframeBox.visible = true;
+      sceneLights.forEach(l => { l.helperMesh.visible = true; });
+      poseViewer.render();
+
+      const filename = `snapshot_cam_${posX}_${posY}_${posZ}.png`;
       const link = document.createElement('a');
       link.download = filename;
       link.href = dataUrl;
       link.click();
 
-      showToast(`📸 Picture Taken! Cam: (${posX}, ${posY}, ${posZ})`);
+      showToast('Snapshot saved without grid');
     };
 
     document.getElementById('copyCamBtn').onclick = () => {
       const cp = poseViewer.camera.position;
-      const str = `Camera: X: ${cp.x.toFixed(2)}, Y: ${cp.y.toFixed(2)}, Z: ${cp.z.toFixed(2)}`;
+      const str = `X: ${cp.x.toFixed(2)}, Y: ${cp.y.toFixed(2)}, Z: ${cp.z.toFixed(2)}`;
       navigator.clipboard.writeText(str);
-      showToast('📋 Copied camera coordinates!');
+      showToast('Coordinates copied');
     };
 
-    // Skin upload
     document.getElementById('uploadSkinBtn').onclick = () => document.getElementById('skinFileInput').click();
     document.getElementById('skinFileInput').onchange = (e) => {
       const file = e.target.files[0];
       if (!file) return;
       const reader = new FileReader();
-      reader.onload = (ev) => {
+      reader.onload = async (ev) => {
         const data = ev.target.result;
-        poseViewer.loadSkin(data);
-        localStorage.setItem('minecraft_active_skin', data);
-        showToast('Skin loaded!');
+        await loadSkinSafely(data);
+        try { localStorage.setItem('minecraft_active_skin', data); } catch(e) {}
+        showToast('Skin loaded');
       };
       reader.readAsDataURL(file);
     };
