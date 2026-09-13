@@ -552,8 +552,10 @@
     </div>
 
     <div class="top-actions">
+      <!-- BUTTON TO OPEN VIEW.HTML -->
+      <button class="btn btn-primary" id="openSkinBrowserBtn">🔍 Browse Skins</button>
       <button class="btn" id="open3dPopupBtn">3D Painter</button>
-      <a href="poses.html" class="btn btn-primary" id="openPosePageBtn">Poses Studio &gt;</a>
+      <a href="poses.html" class="btn" id="openPosePageBtn">Poses &gt;</a>
       <input type="file" id="fileInput" accept="image/png" style="display:none;" />
       <button class="btn" id="uploadSkinBtn">Upload</button>
       <button class="btn" id="downloadSkinBtn">Download .png</button>
@@ -695,6 +697,7 @@
     </aside>
   </div>
 
+  <!-- 3D PAINTER MODAL -->
   <div class="modal-backdrop" id="popup3dModal">
     <div class="popup-window">
       <div class="popup-header">
@@ -759,6 +762,19 @@
         <div class="popup-hud-info">
           Left Drag: Paint | Right Drag: Orbit | Scroll: Zoom | Pixel: <span id="popupHoverCoord">None</span>
         </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- IN-APP SKIN BROWSER MODAL (OPENS VIEW.HTML) -->
+  <div class="modal-backdrop" id="skinBrowserModal">
+    <div class="popup-window" style="width: 95vw; max-width: 1400px; height: 92vh;">
+      <div class="popup-header">
+        <span style="font-weight:600; color:#fff;">Skin Browser (view.html)</span>
+        <button class="btn" id="closeSkinBrowserBtn">Close Window (Esc)</button>
+      </div>
+      <div class="popup-body" style="padding:0;">
+        <iframe id="skinBrowserIframe" src="" style="width: 100%; height: 100%; border: none; background: #0c0d10;"></iframe>
       </div>
     </div>
   </div>
@@ -850,6 +866,37 @@
     }
 
     document.getElementById('openPosePageBtn').onclick = () => syncToLocalStorage();
+
+    /* =========================================================
+       IN-APP BROWSER (VIEW.HTML) INTEGRATION
+       ========================================================= */
+    const skinBrowserModal = document.getElementById('skinBrowserModal');
+    const skinBrowserIframe = document.getElementById('skinBrowserIframe');
+
+    function openSkinBrowser() {
+      syncToLocalStorage();
+      // Lazy load or reload iframe
+      if (!skinBrowserIframe.src || skinBrowserIframe.src === 'about:blank') {
+        skinBrowserIframe.src = 'view.html';
+      }
+      skinBrowserModal.classList.add('active');
+    }
+
+    function closeSkinBrowser() {
+      skinBrowserModal.classList.remove('active');
+    }
+
+    document.getElementById('openSkinBrowserBtn').onclick = openSkinBrowser;
+    document.getElementById('closeSkinBrowserBtn').onclick = closeSkinBrowser;
+
+    // Listen for direct skin load message from view.html iframe
+    window.addEventListener('message', (event) => {
+      if (event.data && event.data.type === 'LOAD_SKIN_TEXTURE') {
+        applyTextureFromUrl(event.data.texture);
+        closeSkinBrowser();
+        showToast(`Loaded skin: ${event.data.name || 'Custom'}`);
+      }
+    });
 
     function setZoom(newZoom) {
       state.zoom = Math.max(4, Math.min(18, newZoom));
@@ -1589,7 +1636,7 @@
       username = username.trim();
       showToast(`Loading skin for "${username}"...`);
 
-      // 1. ROUTE 1: Weserv Image CDN + Minotar (Bypasses School Filters)
+      // 1. ROUTE 1: Weserv Image CDN + Minotar
       try {
         const res = await fetch(`https://images.weserv.nl/?url=minotar.net/skin/${encodeURIComponent(username)}&output=png`);
         if (res.ok) {
@@ -1603,7 +1650,7 @@
         }
       } catch (e) {}
 
-      // 2. ROUTE 2: Weserv Image CDN + MC-Heads (Secondary School Bypass)
+      // 2. ROUTE 2: Weserv Image CDN + MC-Heads
       try {
         const res = await fetch(`https://images.weserv.nl/?url=mc-heads.net/skin/${encodeURIComponent(username)}&output=png`);
         if (res.ok) {
@@ -1717,7 +1764,10 @@
       else if (key === 'i') setTool('dropper');
       else if (key === 'n') setTool('noise');
       else if (key === 'l') setTool('lighten');
-      else if (key === 'escape') closePopupModal();
+      else if (key === 'escape') {
+        closePopupModal();
+        closeSkinBrowser();
+      }
     });
 
     window.addEventListener('resize', () => {
