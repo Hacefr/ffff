@@ -352,7 +352,6 @@
       color: #64748b;
     }
 
-    /* Star button on card */
     .star-btn {
       background: transparent;
       border: 1px solid transparent;
@@ -542,7 +541,7 @@
 
     <div class="top-actions">
       <button class="btn btn-primary" id="randomizeBtn">🎲 Roll New Skins</button>
-      <a href="index.html" class="btn">&lt; Back to Editor</a>
+      <a href="index.html" class="btn" id="backToEditorBtn">&lt; Back to Editor</a>
     </div>
   </header>
 
@@ -939,7 +938,7 @@
     };
 
     /* =========================================================
-       6. LOAD INTO STUDIO (index.html)
+       6. SEAMLESS EDITOR TRANSFER (IN-APP MODAL OR DIRECT REDIRECT)
        ========================================================= */
     async function loadIntoStudio(username) {
       showToast(`Loading skin for "${username}"...`);
@@ -953,11 +952,23 @@
         const reader = new FileReader();
         reader.onloadend = () => {
           try {
+            // Save to localStorage
             localStorage.setItem('minecraft_active_skin', reader.result);
-            showToast(`Loaded ${username}! Opening editor...`);
-            setTimeout(() => {
-              window.location.href = 'index.html';
-            }, 300);
+
+            // If inside an iframe (in index.html modal), send texture to parent window
+            if (window.parent && window.parent !== window) {
+              window.parent.postMessage({
+                type: 'LOAD_SKIN_TEXTURE',
+                texture: reader.result,
+                name: username
+              }, '*');
+            } else {
+              // Direct standalone navigation
+              showToast(`Loaded ${username}! Opening editor...`);
+              setTimeout(() => {
+                window.location.href = 'index.html';
+              }, 300);
+            }
           } catch (err) {
             showToast('Storage error when opening skin.');
           }
@@ -967,6 +978,14 @@
         showToast(`Could not load skin for "${username}".`);
       }
     }
+
+    // Top "Back to Editor" button checks if inside iframe
+    document.getElementById('backToEditorBtn').onclick = (e) => {
+      if (window.parent && window.parent !== window) {
+        e.preventDefault();
+        window.parent.postMessage({ type: 'CLOSE_BROWSER' }, '*');
+      }
+    };
 
     /* =========================================================
        7. TABS, SEARCH & ROLLS
