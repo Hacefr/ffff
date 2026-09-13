@@ -1,0 +1,2232 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Moon Animator — Duo Studio (duo.html)</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/0.156.0/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/skinview3d@3.2.0/bundles/skinview3d.bundle.js"></script>
+  <style>
+    :root {
+      --bg-dark: #090a0d;
+      --bg-panel: #13151a;
+      --bg-surface: #1a1d24;
+      --bg-input: #0c0e12;
+      --border: #242833;
+      --border-strong: #323746;
+      --accent: #2563eb;
+      --accent-hover: #1d4ed8;
+      --p1-color: #38bdf8;
+      --p2-color: #34d399;
+      --keyframe-color: #f59e0b;
+      --danger: #dc2626;
+      --text-main: #f1f3f7;
+      --text-muted: #7e8696;
+      --radius: 4px;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      font-size: 12px;
+      background-color: var(--bg-dark);
+      color: var(--text-main);
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    header {
+      background: var(--bg-panel);
+      border-bottom: 1px solid var(--border);
+      height: 38px;
+      padding: 0 12px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      z-index: 20;
+    }
+
+    .brand-group {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .brand {
+      font-weight: 600;
+      font-size: 0.85rem;
+      letter-spacing: 0.02em;
+      white-space: nowrap;
+    }
+
+    .badge-p1 {
+      background: #0e2a38;
+      border: 1px solid var(--p1-color);
+      color: var(--p1-color);
+      padding: 1px 6px;
+      border-radius: var(--radius);
+      font-size: 0.65rem;
+      font-weight: 600;
+    }
+
+    .badge-p2 {
+      background: #0f3327;
+      border: 1px solid var(--p2-color);
+      color: var(--p2-color);
+      padding: 1px 6px;
+      border-radius: var(--radius);
+      font-size: 0.65rem;
+      font-weight: 600;
+    }
+
+    .search-group {
+      display: flex;
+      align-items: center;
+      background: var(--bg-input);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      max-width: 260px;
+      width: 100%;
+      height: 24px;
+    }
+
+    .search-group input {
+      background: transparent;
+      border: none;
+      color: #fff;
+      padding: 0 8px;
+      font-size: 0.72rem;
+      outline: none;
+      width: 100%;
+      user-select: text;
+    }
+
+    .search-group button {
+      background: var(--bg-surface);
+      border: none;
+      border-left: 1px solid var(--border);
+      color: var(--text-muted);
+      height: 100%;
+      padding: 0 8px;
+      cursor: pointer;
+      font-size: 0.7rem;
+    }
+
+    .search-group button:hover {
+      background: var(--border-strong);
+      color: #fff;
+    }
+
+    .top-actions {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .btn {
+      background: var(--bg-surface);
+      color: var(--text-main);
+      border: 1px solid var(--border);
+      height: 24px;
+      padding: 0 8px;
+      border-radius: var(--radius);
+      cursor: pointer;
+      font-size: 0.7rem;
+      font-weight: 500;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 5px;
+      text-decoration: none;
+      transition: background 0.1s, border-color 0.1s;
+      white-space: nowrap;
+    }
+
+    .btn:hover {
+      background: #252a35;
+      border-color: var(--border-strong);
+    }
+
+    .btn:disabled {
+      opacity: 0.35;
+      cursor: not-allowed;
+    }
+
+    .btn-primary {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: #fff;
+    }
+
+    .btn-primary:hover {
+      background: var(--accent-hover);
+    }
+
+    .btn.active-p1 {
+      background: #0e2a38;
+      border-color: var(--p1-color);
+      color: #fff;
+      font-weight: 600;
+    }
+
+    .btn.active-p2 {
+      background: #0f3327;
+      border-color: var(--p2-color);
+      color: #fff;
+      font-weight: 600;
+    }
+
+    .select-styled {
+      background: var(--bg-surface);
+      border: 1px solid var(--border);
+      color: #fff;
+      padding: 2px 6px;
+      border-radius: var(--radius);
+      font-size: 0.7rem;
+      outline: none;
+      cursor: pointer;
+      height: 24px;
+    }
+
+    .workspace-top {
+      flex: 1;
+      position: relative;
+      width: 100%;
+      background: #0d0f14;
+      overflow: hidden;
+    }
+
+    #anim-canvas {
+      width: 100%;
+      height: 100%;
+      display: block;
+      outline: none;
+    }
+
+    #viewportInteractionLayer {
+      position: absolute;
+      inset: 0;
+      z-index: 5;
+      cursor: default;
+    }
+
+    .rig-floating-window {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      width: 230px;
+      background: rgba(19, 21, 26, 0.95);
+      border: 1px solid var(--border-strong);
+      border-radius: var(--radius);
+      padding: 8px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      z-index: 10;
+    }
+
+    .window-header {
+      font-size: 0.65rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-muted);
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 3px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .char-picker-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 4px;
+      margin-bottom: 2px;
+    }
+
+    .limb-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 3px;
+    }
+
+    .btn-limb {
+      background: var(--bg-surface);
+      border: 1px solid var(--border);
+      color: var(--text-muted);
+      padding: 4px 6px;
+      border-radius: var(--radius);
+      font-size: 0.68rem;
+      cursor: pointer;
+      text-align: left;
+    }
+
+    .btn-limb:hover {
+      color: #fff;
+      border-color: var(--border-strong);
+    }
+
+    .btn-limb.active {
+      background: #1e283d;
+      border-color: var(--accent);
+      color: #fff;
+      font-weight: 500;
+    }
+
+    .hud-badge {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      background: rgba(19, 21, 26, 0.94);
+      border: 1px solid var(--border-strong);
+      border-radius: var(--radius);
+      padding: 6px 10px;
+      font-family: monospace;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      min-width: 170px;
+      z-index: 10;
+    }
+
+    .hud-row {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.68rem;
+      color: var(--text-muted);
+    }
+
+    .hud-row b {
+      color: #fff;
+    }
+
+    .timeline-dock {
+      height: 250px;
+      background: var(--bg-panel);
+      border-top: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      z-index: 20;
+    }
+
+    .timeline-toolbar {
+      height: 32px;
+      background: var(--bg-surface);
+      border-bottom: 1px solid var(--border);
+      padding: 0 10px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+    }
+
+    .timeline-body {
+      flex: 1;
+      display: flex;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .track-labels-col {
+      width: 165px;
+      background: var(--bg-panel);
+      border-right: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      overflow-y: hidden;
+    }
+
+    .track-header-cell {
+      height: 24px;
+      border-bottom: 1px solid var(--border);
+      padding: 0 8px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 0.68rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      text-transform: uppercase;
+    }
+
+    .track-filter-btns {
+      display: flex;
+      gap: 2px;
+    }
+
+    .track-filter-btn {
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--text-muted);
+      padding: 1px 5px;
+      border-radius: 2px;
+      font-size: 0.62rem;
+      cursor: pointer;
+    }
+
+    .track-filter-btn.active {
+      background: #1e283d;
+      border-color: var(--accent);
+      color: #fff;
+    }
+
+    .track-label-cell {
+      height: 22px;
+      border-bottom: 1px solid rgba(36, 40, 51, 0.5);
+      padding: 0 8px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 0.68rem;
+      color: var(--text-muted);
+      cursor: pointer;
+    }
+
+    .track-label-cell:hover {
+      background: var(--bg-surface);
+      color: #fff;
+    }
+
+    .track-label-cell.active {
+      background: #1e283d;
+      color: #fff;
+      font-weight: 500;
+    }
+
+    .timeline-canvas-container {
+      flex: 1;
+      position: relative;
+      overflow-x: auto;
+      overflow-y: hidden;
+      background: #0d0f14;
+    }
+
+    #timeline-canvas {
+      display: block;
+      cursor: pointer;
+    }
+
+    .toast {
+      position: fixed;
+      bottom: 260px;
+      right: 16px;
+      background: var(--bg-panel);
+      color: #fff;
+      border: 1px solid var(--border-strong);
+      padding: 6px 12px;
+      border-radius: var(--radius);
+      font-size: 0.72rem;
+      opacity: 0;
+      transform: translateY(6px);
+      transition: opacity 0.15s, transform 0.15s;
+      pointer-events: none;
+      z-index: 100;
+    }
+
+    .toast.show {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="brand-group">
+      <div class="brand">Moon Animator — Duo Studio</div>
+      <span id="activeCharBadge" class="badge-p1">Active: Player 1</span>
+    </div>
+
+    <div class="search-group">
+      <input type="text" id="playerSearchInput" placeholder="Load skin for active character..." autocomplete="off" spellcheck="false" />
+      <button id="searchSkinBtn">Search</button>
+    </div>
+
+    <div class="top-actions">
+      <button class="btn" id="toggleLightingModeBtn">Lighting: Flat</button>
+      <input type="file" id="skinFileInput" accept="image/png" style="display:none;" />
+      <button class="btn" id="uploadSkinBtn">Open Skin</button>
+      
+      <select class="select-styled" id="animPresetSelect">
+        <option value="">Load Preset...</option>
+        <option value="duel">Duo: Sword Duel</option>
+        <option value="highfive">Duo: High-Five</option>
+        <option value="wave">Duo: Friendly Wave</option>
+        <option value="walk">P1: Walk Cycle</option>
+        <option value="slash">P1: Sword Slash</option>
+      </select>
+
+      <button class="btn" id="exportJsonBtn">Export JSON</button>
+      <input type="file" id="importJsonInput" accept=".json" style="display:none;" />
+      <button class="btn" id="importJsonBtn">Import JSON</button>
+
+      <a href="view.html" class="btn">Skin Browser</a>
+      <a href="index.html" class="btn">&lt; Skin Studio</a>
+    </div>
+  </header>
+
+  <div class="workspace-top" id="workspaceViewport">
+    <canvas id="anim-canvas"></canvas>
+    <div id="viewportInteractionLayer"></div>
+
+    <div class="rig-floating-window">
+      <div class="window-header">
+        <span>Character Selection</span>
+      </div>
+      <div class="char-picker-grid">
+        <button class="btn active-p1" id="btnCharP1">Player 1 (Blue)</button>
+        <button class="btn" id="btnCharP2">Player 2 (Green)</button>
+      </div>
+
+      <div class="window-header" style="margin-top:2px;">
+        <span>Rig Hierarchy</span>
+      </div>
+      <div class="limb-grid">
+        <button class="btn-limb active" data-limb="head">Head</button>
+        <button class="btn-limb" data-limb="body">Torso</button>
+        <button class="btn-limb" data-limb="rightArm">R.Arm</button>
+        <button class="btn-limb" data-limb="leftArm">L.Arm</button>
+        <button class="btn-limb" data-limb="rightLeg">R.Leg</button>
+        <button class="btn-limb" data-limb="leftLeg">L.Leg</button>
+      </div>
+      <button class="btn-limb" data-limb="root" style="width:100%; margin-top:2px;">Root Position</button>
+
+      <button class="btn" id="torsoLockBtn" style="width:100%; margin-top:2px;">🔒 Torso Lock: OFF</button>
+
+      <div style="display:flex; gap:4px; margin-top:2px;">
+        <button class="btn" id="zeroSelectedBtn" style="flex:1;">Zero</button>
+        <button class="btn" id="tposeBtn" style="flex:1;">T-Pose</button>
+        <button class="btn" id="restPoseBtn" style="flex:1;">Rest</button>
+      </div>
+    </div>
+
+    <div class="hud-badge">
+      <div class="hud-row"><span>Character:</span><b id="hudActiveCharText" style="color:var(--p1-color);">Player 1</b></div>
+      <div class="hud-row"><span>Active Limb:</span><b id="hudActiveLimbText">Head</b></div>
+      <div class="hud-row"><span>Torso Lock:</span><b id="hudLockStatus">OFF</b></div>
+      <div class="hud-row"><span>Mode (R):</span><b id="hudModeText">Rotation</b></div>
+      <div class="hud-row"><span>Frame:</span><b id="hudFrameReadout">0 / 60</b></div>
+    </div>
+  </div>
+
+  <div class="timeline-dock">
+    <div class="timeline-toolbar">
+      <div style="display:flex; align-items:center; gap:4px;">
+        <button class="btn" id="undoBtn" disabled title="Undo (Ctrl+Z)">Undo</button>
+        <button class="btn" id="redoBtn" disabled title="Redo (Ctrl+Y)">Redo</button>
+
+        <span style="border-left:1px solid var(--border); height:16px; margin:0 2px;"></span>
+
+        <button class="btn" id="firstFrameBtn">First</button>
+        <button class="btn" id="prevFrameBtn">&lt;</button>
+        <button class="btn btn-primary" id="playPauseBtn" style="min-width:60px;">Play</button>
+        <button class="btn" id="nextFrameBtn">&gt;</button>
+        <button class="btn" id="lastFrameBtn">End</button>
+        <span style="font-family:monospace; margin-left:6px;" id="transportFrameText">F: 00</span>
+      </div>
+
+      <div style="display:flex; align-items:center; gap:6px;">
+        <button class="btn btn-primary" id="addKeyBtn" title="Set keyframe for active limb (K)">+ Key (K)</button>
+        <button class="btn" id="addAllKeyBtn" title="Set keyframe for all limbs of active character (Shift+K)">+ Char Limbs</button>
+        <button class="btn" id="addAllBothCharsKeyBtn" title="Set keyframe for both characters">+ Both Chars</button>
+        <button class="btn btn-danger" id="deleteKeyBtn" title="Delete keyframe (Del)">Delete Key</button>
+        <button class="btn" id="clearAnimBtn">Clear All</button>
+
+        <div style="display:flex; align-items:center; gap:4px; margin-left:6px;">
+          <span style="color:var(--text-muted); font-size:0.68rem;">FPS</span>
+          <select class="select-styled" id="fpsSelect" style="width:50px;">
+            <option value="24">24</option>
+            <option value="30" selected>30</option>
+            <option value="60">60</option>
+          </select>
+        </div>
+
+        <div style="display:flex; align-items:center; gap:4px;">
+          <span style="color:var(--text-muted); font-size:0.68rem;">Frames</span>
+          <input type="number" id="totalFramesInput" value="60" min="10" max="300" class="select-styled" style="width:55px;">
+        </div>
+      </div>
+    </div>
+
+    <div class="timeline-body">
+      <div class="track-labels-col" id="trackLabelsCol">
+        <div class="track-header-cell">
+          <span>Channels</span>
+          <div class="track-filter-btns">
+            <button class="track-filter-btn active" data-filter="all">All</button>
+            <button class="track-filter-btn" data-filter="p1">P1</button>
+            <button class="track-filter-btn" data-filter="p2">P2</button>
+          </div>
+        </div>
+        <div id="trackLabelsContainer"></div>
+      </div>
+
+      <div class="timeline-canvas-container" id="timelineScrollContainer">
+        <canvas id="timeline-canvas"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast">Notification</div>
+
+  <script>
+    function generateSteveDataUrl() {
+      const c = document.createElement('canvas');
+      c.width = 64; c.height = 64;
+      const ctx = c.getContext('2d');
+      function f(x, y, w, h, col) { ctx.fillStyle = col; ctx.fillRect(x, y, w, h); }
+
+      f(0, 0, 32, 16, '#452b1b');
+      f(8, 8, 8, 8, '#bb8361');
+      f(8, 8, 8, 2, '#452b1b');
+      f(9, 10, 1, 1, '#452b1b'); f(14, 10, 1, 1, '#452b1b');
+      f(10, 12, 1, 1, '#fff'); f(11, 12, 1, 1, '#2e389e');
+      f(13, 12, 1, 1, '#2e389e'); f(14, 12, 1, 1, '#fff');
+      f(11, 13, 2, 1, '#9c684a'); f(10, 14, 4, 1, '#472619');
+      f(16, 16, 24, 16, '#00a8a8');
+      f(20, 20, 8, 2, '#bb8361');
+      f(40, 16, 16, 4, '#00a8a8');
+      f(40, 20, 16, 12, '#bb8361');
+      f(32, 48, 16, 4, '#00a8a8');
+      f(32, 52, 16, 12, '#bb8361');
+      f(0, 16, 16, 12, '#2c3577');
+      f(0, 28, 16, 4, '#424242');
+      f(16, 48, 16, 12, '#2c3577');
+      f(16, 60, 16, 4, '#424242');
+
+      return c.toDataURL('image/png');
+    }
+
+    let poseViewer = null;
+    let player1 = null;
+    let player2 = null;
+
+    let activeCharKey = 'p1';
+    let activeLimbKey = 'head';
+    let isTorsoLocked = false;
+    let currentMode = 'rotate';
+    let currentSpace = 'local';
+    let currentLightingMode = 'flat';
+    let activeTrackFilter = 'all';
+
+    let camRadius = 55;
+    let camPhi = 1.30;
+    let camTheta = 0;
+    const camTarget = new THREE.Vector3(0, 0, 0);
+    let isRightDraggingCamera = false;
+    let lastRightMouse = { x: 0, y: 0 };
+
+    const keysDown = { w: false, a: false, s: false, d: false, q: false, e: false };
+
+    const BASE_LIMBS = ['head', 'body', 'rightArm', 'leftArm', 'rightLeg', 'leftLeg', 'root'];
+
+    const limbDisplayNames = {
+      head: 'Head',
+      body: 'Torso',
+      rightArm: 'Right Arm',
+      leftArm: 'Left Arm',
+      rightLeg: 'Right Leg',
+      leftLeg: 'Left Leg',
+      root: 'Root Position'
+    };
+
+    const ALL_TRACK_KEYS = [
+      'p1_head', 'p1_body', 'p1_rightArm', 'p1_leftArm', 'p1_rightLeg', 'p1_leftLeg', 'p1_root',
+      'p2_head', 'p2_body', 'p2_rightArm', 'p2_leftArm', 'p2_rightLeg', 'p2_leftLeg', 'p2_root'
+    ];
+
+    const limbOffsets = {
+      p1: {},
+      p2: {}
+    };
+
+    function showToast(msg) {
+      const t = document.getElementById('toast');
+      t.textContent = msg;
+      t.classList.add('show');
+      setTimeout(() => t.classList.remove('show'), 2200);
+    }
+
+    function blobToDataUrl(blob) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onloadend = () => resolve(reader.result);
+        reader.onerror = reject;
+        reader.readAsDataURL(blob);
+      });
+    }
+
+    function getActivePlayerObject() {
+      return activeCharKey === 'p1' ? player1 : player2;
+    }
+
+    function getLimbObject(trackOrLimbKey) {
+      if (!poseViewer || !player1 || !player2) return null;
+
+      let char = activeCharKey;
+      let limb = trackOrLimbKey;
+
+      if (trackOrLimbKey.startsWith('p1_')) {
+        char = 'p1';
+        limb = trackOrLimbKey.replace('p1_', '');
+      } else if (trackOrLimbKey.startsWith('p2_')) {
+        char = 'p2';
+        limb = trackOrLimbKey.replace('p2_', '');
+      }
+
+      const pObj = char === 'p1' ? player1 : player2;
+      if (!pObj) return null;
+      if (limb === 'root') return pObj;
+      return (pObj.skin && pObj.skin[limb]) ? pObj.skin[limb] : null;
+    }
+
+    function removeCapes() {
+      [player1, player2].forEach(p => {
+        if (!p) return;
+        if (p.cape) p.cape.visible = false;
+        if ('backEquipment' in p) p.backEquipment = null;
+        p.traverse(c => {
+          if (c.name && c.name.toLowerCase().includes('cape')) {
+            c.visible = false;
+          }
+        });
+      });
+    }
+
+    function loadSkinToPlayer(targetPlayer, dataUrl) {
+      const textureLoader = new THREE.TextureLoader();
+      textureLoader.crossOrigin = 'anonymous';
+      textureLoader.load(dataUrl, (texture) => {
+        texture.magFilter = THREE.NearestFilter;
+        texture.minFilter = THREE.NearestFilter;
+        targetPlayer.traverse(c => {
+          if (c.isMesh && c.material) {
+            if (!c.userData.isClonedMaterial) {
+              c.material = c.material.clone();
+              c.userData.isClonedMaterial = true;
+            }
+            c.material.map = texture;
+            c.material.needsUpdate = true;
+          }
+        });
+        updateCharacterMaterials();
+        removeCapes();
+      });
+    }
+
+    async function searchAndLoadSkin(username) {
+      if (!username || !username.trim()) return;
+      username = username.trim();
+      const targetPlayer = getActivePlayerObject();
+      const charName = activeCharKey === 'p1' ? 'Player 1' : 'Player 2';
+      showToast(`Loading skin for ${charName} (${username})...`);
+
+      try {
+        const res = await fetch(`https://images.weserv.nl/?url=minotar.net/skin/${encodeURIComponent(username)}&output=png`);
+        if (res.ok) {
+          const blob = await res.blob();
+          if (blob.size > 300) {
+            const dataUrl = await blobToDataUrl(blob);
+            loadSkinToPlayer(targetPlayer, dataUrl);
+            showToast(`Loaded ${username} on ${charName}`);
+            return;
+          }
+        }
+      } catch (e) {}
+
+      try {
+        const res = await fetch(`https://images.weserv.nl/?url=mc-heads.net/skin/${encodeURIComponent(username)}&output=png`);
+        if (res.ok) {
+          const blob = await res.blob();
+          if (blob.size > 300) {
+            const dataUrl = await blobToDataUrl(blob);
+            loadSkinToPlayer(targetPlayer, dataUrl);
+            showToast(`Loaded ${username} on ${charName}`);
+            return;
+          }
+        }
+      } catch (e) {}
+
+      try {
+        const res = await fetch(`https://minotar.net/skin/${encodeURIComponent(username)}`);
+        if (res.ok) {
+          const blob = await res.blob();
+          if (blob.size > 300) {
+            const dataUrl = await blobToDataUrl(blob);
+            loadSkinToPlayer(targetPlayer, dataUrl);
+            showToast(`Loaded ${username} on ${charName}`);
+            return;
+          }
+        }
+      } catch (e) {}
+
+      try {
+        const res = await fetch(`https://api.ashcon.app/mojang/v2/user/${encodeURIComponent(username)}`);
+        if (res.ok) {
+          const json = await res.json();
+          if (json.textures && json.textures.skin && json.textures.skin.data) {
+            const dataUrl = 'data:image/png;base64,' + json.textures.skin.data;
+            loadSkinToPlayer(targetPlayer, dataUrl);
+            showToast(`Loaded ${username} on ${charName}`);
+            return;
+          }
+        }
+      } catch (e) {}
+
+      showToast(`Player not found: "${username}"`);
+    }
+
+    document.getElementById('searchSkinBtn').onclick = () => searchAndLoadSkin(document.getElementById('playerSearchInput').value);
+    document.getElementById('playerSearchInput').onkeydown = (e) => {
+      if (e.key === 'Enter') searchAndLoadSkin(e.target.value);
+    };
+
+    const historyStack = [];
+    let historyIndex = -1;
+
+    function recordHistory() {
+      const snapshot = {
+        currentFrame: animState.currentFrame,
+        tracks: JSON.parse(JSON.stringify(animState.tracks)),
+        pose: {}
+      };
+
+      ALL_TRACK_KEYS.forEach(k => {
+        const obj = getLimbObject(k);
+        if (obj) {
+          snapshot.pose[k] = {
+            pos: [obj.position.x, obj.position.y, obj.position.z],
+            rot: [obj.rotation.x, obj.rotation.y, obj.rotation.z],
+            quat: [obj.quaternion.x, obj.quaternion.y, obj.quaternion.z, obj.quaternion.w]
+          };
+        }
+      });
+
+      historyStack.splice(historyIndex + 1);
+      historyStack.push(snapshot);
+      if (historyStack.length > 35) historyStack.shift();
+      historyIndex = historyStack.length - 1;
+
+      updateHistoryButtons();
+    }
+
+    function undo() {
+      if (historyIndex > 0) {
+        historyIndex--;
+        restoreHistory(historyIndex);
+        showToast('Undo');
+      }
+    }
+
+    function redo() {
+      if (historyIndex < historyStack.length - 1) {
+        historyIndex++;
+        restoreHistory(historyIndex);
+        showToast('Redo');
+      }
+    }
+
+    function restoreHistory(idx) {
+      if (idx < 0 || idx >= historyStack.length) return;
+      const snapshot = historyStack[idx];
+      animState.tracks = JSON.parse(JSON.stringify(snapshot.tracks));
+      setCurrentFrame(snapshot.currentFrame);
+
+      if (snapshot.pose) {
+        Object.keys(snapshot.pose).forEach(k => {
+          const obj = getLimbObject(k);
+          if (obj && snapshot.pose[k]) {
+            const item = snapshot.pose[k];
+            obj.position.set(item.pos[0], item.pos[1], item.pos[2]);
+            obj.quaternion.set(item.quat[0], item.quat[1], item.quat[2], item.quat[3]);
+          }
+        });
+      }
+
+      updateGizmoWorldPosition();
+      updateHighlightBox();
+      renderTimeline();
+      updateHistoryButtons();
+    }
+
+    function updateHistoryButtons() {
+      const uBtn = document.getElementById('undoBtn');
+      const rBtn = document.getElementById('redoBtn');
+      if (uBtn) uBtn.disabled = historyIndex <= 0;
+      if (rBtn) rBtn.disabled = historyIndex >= historyStack.length - 1;
+    }
+
+    document.getElementById('undoBtn').onclick = undo;
+    document.getElementById('redoBtn').onclick = redo;
+
+    let ambientLight = null;
+    let sunLight = null;
+    let fillLight = null;
+    let shadowPlane = null;
+
+    function applyLightingMode(mode) {
+      currentLightingMode = mode;
+      const isFlat = mode === 'flat';
+      document.getElementById('toggleLightingModeBtn').textContent = isFlat ? 'Lighting: Flat' : 'Lighting: Studio';
+
+      if (isFlat) {
+        ambientLight.intensity = 1.05;
+        sunLight.intensity = 0.0;
+        fillLight.intensity = 0.0;
+        shadowPlane.visible = false;
+        poseViewer.renderer.shadowMap.enabled = false;
+      } else {
+        ambientLight.intensity = 0.35;
+        sunLight.intensity = 2.2;
+        fillLight.intensity = 1.8;
+        shadowPlane.visible = true;
+        poseViewer.renderer.shadowMap.enabled = true;
+      }
+
+      updateCharacterMaterials();
+      showToast(isFlat ? 'Flat Lighting' : 'Studio Lighting');
+    }
+
+    const animState = {
+      totalFrames: 60,
+      fps: 30,
+      currentFrame: 0,
+      isPlaying: false,
+      lastPlayTime: 0,
+      tracks: {}
+    };
+
+    ALL_TRACK_KEYS.forEach(k => { animState.tracks[k] = []; });
+
+    function addKeyframe(trackKey, frame) {
+      const obj = getLimbObject(trackKey);
+      if (!obj) return;
+
+      const track = animState.tracks[trackKey];
+      const existingIdx = track.findIndex(k => k.frame === frame);
+
+      const kfData = {
+        frame: frame,
+        pos: [obj.position.x, obj.position.y, obj.position.z],
+        rot: [obj.rotation.x, obj.rotation.y, obj.rotation.z],
+        quat: [obj.quaternion.x, obj.quaternion.y, obj.quaternion.z, obj.quaternion.w]
+      };
+
+      if (existingIdx !== -1) {
+        track[existingIdx] = kfData;
+      } else {
+        track.push(kfData);
+        track.sort((a, b) => a.frame - b.frame);
+      }
+      renderTimeline();
+      recordHistory();
+    }
+
+    function deleteKeyframe(trackKey, frame) {
+      const track = animState.tracks[trackKey];
+      const idx = track.findIndex(k => k.frame === frame);
+      if (idx !== -1) {
+        track.splice(idx, 1);
+        renderTimeline();
+        recordHistory();
+        showToast(`Deleted keyframe: ${trackKey} @ F${frame}`);
+      }
+    }
+
+    function evaluateLimbAtFrame(trackKey, frame) {
+      const track = animState.tracks[trackKey];
+      const obj = getLimbObject(trackKey);
+      if (!obj) return;
+
+      const char = trackKey.startsWith('p1_') ? 'p1' : 'p2';
+      const limb = trackKey.replace(/^(p1_|p2_)/, '');
+
+      if (track.length === 0) {
+        if (limb !== 'root' && limbOffsets[char][limb]) {
+          obj.position.copy(limbOffsets[char][limb].basePos);
+        }
+        return;
+      }
+
+      if (track.length === 1 || frame <= track[0].frame) {
+        applyKeyframeToLimb(obj, track[0], limb);
+        return;
+      }
+      if (frame >= track[track.length - 1].frame) {
+        applyKeyframeToLimb(obj, track[track.length - 1], limb);
+        return;
+      }
+
+      let k0 = track[0];
+      let k1 = track[track.length - 1];
+      for (let i = 0; i < track.length - 1; i++) {
+        if (track[i].frame <= frame && track[i + 1].frame >= frame) {
+          k0 = track[i];
+          k1 = track[i + 1];
+          break;
+        }
+      }
+
+      const range = k1.frame - k0.frame;
+      const alpha = range === 0 ? 0 : (frame - k0.frame) / range;
+
+      if (limb === 'root') {
+        obj.position.set(
+          THREE.MathUtils.lerp(k0.pos[0], k1.pos[0], alpha),
+          THREE.MathUtils.lerp(k0.pos[1], k1.pos[1], alpha),
+          THREE.MathUtils.lerp(k0.pos[2], k1.pos[2], alpha)
+        );
+      } else if (limbOffsets[char][limb]) {
+        obj.position.copy(limbOffsets[char][limb].basePos);
+      }
+
+      const q0 = new THREE.Quaternion(...k0.quat);
+      const q1 = new THREE.Quaternion(...k1.quat);
+      obj.quaternion.slerpQuaternions(q0, q1, alpha);
+    }
+
+    function applyKeyframeToLimb(obj, kf, limb) {
+      if (limb === 'root') {
+        obj.position.set(kf.pos[0], kf.pos[1], kf.pos[2]);
+      } else {
+        const char = obj === player1 || (player1.skin && Object.values(player1.skin).includes(obj)) ? 'p1' : 'p2';
+        if (limbOffsets[char] && limbOffsets[char][limb]) {
+          obj.position.copy(limbOffsets[char][limb].basePos);
+        }
+      }
+      obj.quaternion.set(kf.quat[0], kf.quat[1], kf.quat[2], kf.quat[3]);
+    }
+
+    function applyAnimationAtCurrentFrame() {
+      ALL_TRACK_KEYS.forEach(k => {
+        evaluateLimbAtFrame(k, animState.currentFrame);
+      });
+      updateGizmoWorldPosition();
+      updateHighlightBox();
+    }
+
+    function setCurrentFrame(f) {
+      animState.currentFrame = Math.max(0, Math.min(animState.totalFrames, f));
+      document.getElementById('transportFrameText').textContent = `F: ${Math.floor(animState.currentFrame).toString().padStart(2, '0')}`;
+      document.getElementById('hudFrameReadout').textContent = `${Math.floor(animState.currentFrame)} / ${animState.totalFrames}`;
+      applyAnimationAtCurrentFrame();
+      renderTimeline();
+    }
+
+    const timelineCanvas = document.getElementById('timeline-canvas');
+    const tCtx = timelineCanvas.getContext('2d');
+    const frameWidth = 14;
+    const headerHeight = 24;
+    const rowHeight = 22;
+
+    function getVisibleTracks() {
+      if (activeTrackFilter === 'p1') {
+        return ALL_TRACK_KEYS.filter(k => k.startsWith('p1_'));
+      } else if (activeTrackFilter === 'p2') {
+        return ALL_TRACK_KEYS.filter(k => k.startsWith('p2_'));
+      }
+      return ALL_TRACK_KEYS;
+    }
+
+    function updateTrackLabelsUI() {
+      const container = document.getElementById('trackLabelsContainer');
+      container.innerHTML = '';
+      const visible = getVisibleTracks();
+
+      visible.forEach(k => {
+        const char = k.startsWith('p1_') ? 'P1' : 'P2';
+        const limb = k.replace(/^(p1_|p2_)/, '');
+        const cell = document.createElement('div');
+        cell.className = 'track-label-cell';
+        cell.dataset.track = k;
+
+        const isCurrentActive = (activeCharKey === (char === 'P1' ? 'p1' : 'p2')) && (activeLimbKey === limb);
+        if (isCurrentActive) cell.classList.add('active');
+
+        const colorBadge = char === 'P1' ? 'var(--p1-color)' : 'var(--p2-color)';
+        cell.innerHTML = `
+          <span>${limbDisplayNames[limb]}</span>
+          <span style="color:${colorBadge}; font-weight:600; font-size:0.6rem;">${char}</span>
+        `;
+
+        cell.onclick = () => {
+          selectChar(char === 'P1' ? 'p1' : 'p2');
+          selectLimb(limb);
+        };
+        container.appendChild(cell);
+      });
+    }
+
+    function resizeTimelineCanvas() {
+      const container = document.getElementById('timelineScrollContainer');
+      const visible = getVisibleTracks();
+      const w = Math.max(container.clientWidth, (animState.totalFrames + 2) * frameWidth);
+      const h = headerHeight + (visible.length * rowHeight);
+      timelineCanvas.width = w;
+      timelineCanvas.height = h;
+      timelineCanvas.style.width = w + 'px';
+      timelineCanvas.style.height = h + 'px';
+      renderTimeline();
+    }
+
+    function renderTimeline() {
+      const w = timelineCanvas.width;
+      const h = timelineCanvas.height;
+      tCtx.clearRect(0, 0, w, h);
+
+      const visible = getVisibleTracks();
+
+      visible.forEach((k, idx) => {
+        const y = headerHeight + (idx * rowHeight);
+        tCtx.fillStyle = idx % 2 === 0 ? '#111318' : '#0d0f14';
+        tCtx.fillRect(0, y, w, rowHeight);
+
+        const isCurrentActive = (activeCharKey === (k.startsWith('p1_') ? 'p1' : 'p2')) && (activeLimbKey === k.replace(/^(p1_|p2_)/, ''));
+        if (isCurrentActive) {
+          tCtx.fillStyle = k.startsWith('p1_') ? 'rgba(56, 189, 248, 0.14)' : 'rgba(52, 211, 153, 0.14)';
+          tCtx.fillRect(0, y, w, rowHeight);
+        }
+      });
+
+      tCtx.fillStyle = '#16181f';
+      tCtx.fillRect(0, 0, w, headerHeight);
+      tCtx.strokeStyle = 'rgba(255, 255, 255, 0.05)';
+      tCtx.lineWidth = 1;
+
+      for (let f = 0; f <= animState.totalFrames; f++) {
+        const x = f * frameWidth + 10;
+        tCtx.beginPath();
+        tCtx.moveTo(x, headerHeight);
+        tCtx.lineTo(x, h);
+        tCtx.stroke();
+
+        if (f % 5 === 0) {
+          tCtx.fillStyle = f === animState.currentFrame ? '#3b82f6' : '#7e8696';
+          tCtx.font = '9px monospace';
+          tCtx.fillText(f.toString(), x - 4, headerHeight - 7);
+
+          tCtx.strokeStyle = 'rgba(255, 255, 255, 0.12)';
+          tCtx.beginPath();
+          tCtx.moveTo(x, headerHeight - 4);
+          tCtx.lineTo(x, headerHeight);
+          tCtx.stroke();
+        }
+      }
+
+      visible.forEach((k, idx) => {
+        const y = headerHeight + (idx * rowHeight) + (rowHeight / 2);
+        const track = animState.tracks[k];
+        const isCurrentActive = (activeCharKey === (k.startsWith('p1_') ? 'p1' : 'p2')) && (activeLimbKey === k.replace(/^(p1_|p2_)/, ''));
+
+        track.forEach(kf => {
+          const x = kf.frame * frameWidth + 10;
+          drawDiamond(x, y, 5, '#f59e0b', isCurrentActive && kf.frame === Math.round(animState.currentFrame));
+        });
+      });
+
+      const playheadX = animState.currentFrame * frameWidth + 10;
+      tCtx.strokeStyle = '#ef4444';
+      tCtx.lineWidth = 2;
+      tCtx.beginPath();
+      tCtx.moveTo(playheadX, 0);
+      tCtx.lineTo(playheadX, h);
+      tCtx.stroke();
+
+      tCtx.fillStyle = '#ef4444';
+      tCtx.beginPath();
+      tCtx.moveTo(playheadX - 5, 0);
+      tCtx.lineTo(playheadX + 5, 0);
+      tCtx.lineTo(playheadX, 8);
+      tCtx.fill();
+    }
+
+    function drawDiamond(x, y, size, color, isSelected) {
+      tCtx.fillStyle = isSelected ? '#ffffff' : color;
+      tCtx.strokeStyle = '#000000';
+      tCtx.lineWidth = 1;
+      tCtx.beginPath();
+      tCtx.moveTo(x, y - size);
+      tCtx.lineTo(x + size, y);
+      tCtx.lineTo(x, y + size);
+      tCtx.lineTo(x - size, y);
+      tCtx.closePath();
+      tCtx.fill();
+      tCtx.stroke();
+    }
+
+    let isScrubbingTimeline = false;
+
+    timelineCanvas.addEventListener('mousedown', (e) => {
+      isScrubbingTimeline = true;
+      handleTimelineScrub(e);
+    });
+
+    window.addEventListener('mousemove', (e) => {
+      if (isScrubbingTimeline) {
+        handleTimelineScrub(e);
+      }
+    });
+
+    window.addEventListener('mouseup', () => {
+      isScrubbingTimeline = false;
+    });
+
+    function handleTimelineScrub(e) {
+      const rect = timelineCanvas.getBoundingClientRect();
+      const clickX = e.clientX - rect.left - 10;
+      const clickedFrame = Math.round(clickX / frameWidth);
+      setCurrentFrame(clickedFrame);
+    }
+
+    function makeRotationKf(trackKey, frame, rotX, rotY, rotZ) {
+      const char = trackKey.startsWith('p1_') ? 'p1' : 'p2';
+      const limb = trackKey.replace(/^(p1_|p2_)/, '');
+      const base = (limbOffsets[char] && limbOffsets[char][limb]) ? limbOffsets[char][limb].basePos : new THREE.Vector3();
+      const euler = new THREE.Euler(rotX, rotY, rotZ, 'YXZ');
+      const quat = new THREE.Quaternion().setFromEuler(euler);
+      return {
+        frame: frame,
+        pos: [base.x, base.y, base.z],
+        rot: [rotX, rotY, rotZ],
+        quat: [quat.x, quat.y, quat.z, quat.w]
+      };
+    }
+
+    function loadPresetAnimation(name) {
+      ALL_TRACK_KEYS.forEach(k => { animState.tracks[k] = []; });
+
+      if (name === 'duel') {
+        animState.totalFrames = 36;
+        animState.tracks.p1_root = [
+          { frame: 0, pos: [-12, 0, 0], rot: [0, Math.PI/3, 0], quat: [0, Math.sin(Math.PI/6), 0, Math.cos(Math.PI/6)] }
+        ];
+        animState.tracks.p2_root = [
+          { frame: 0, pos: [12, 0, 0], rot: [0, -Math.PI/3, 0], quat: [0, -Math.sin(Math.PI/6), 0, Math.cos(Math.PI/6)] }
+        ];
+        animState.tracks.p1_rightArm = [
+          makeRotationKf('p1_rightArm', 0, -1.2, -0.3, 0),
+          makeRotationKf('p1_rightArm', 18, -1.6, 0.4, 0.2),
+          makeRotationKf('p1_rightArm', 36, -1.2, -0.3, 0)
+        ];
+        animState.tracks.p2_rightArm = [
+          makeRotationKf('p2_rightArm', 0, -1.2, 0.3, 0),
+          makeRotationKf('p2_rightArm', 18, -1.6, -0.4, -0.2),
+          makeRotationKf('p2_rightArm', 36, -1.2, 0.3, 0)
+        ];
+      } else if (name === 'highfive') {
+        animState.totalFrames = 30;
+        animState.tracks.p1_root = [
+          { frame: 0, pos: [-9, 0, 0], rot: [0, 0.2, 0], quat: [0, 0.1, 0, 0.99] }
+        ];
+        animState.tracks.p2_root = [
+          { frame: 0, pos: [9, 0, 0], rot: [0, -0.2, 0], quat: [0, -0.1, 0, 0.99] }
+        ];
+        animState.tracks.p1_rightArm = [
+          makeRotationKf('p1_rightArm', 0, 0, 0, 0),
+          makeRotationKf('p1_rightArm', 15, -2.4, 0.4, 0),
+          makeRotationKf('p1_rightArm', 30, 0, 0, 0)
+        ];
+        animState.tracks.p2_leftArm = [
+          makeRotationKf('p2_leftArm', 0, 0, 0, 0),
+          makeRotationKf('p2_leftArm', 15, -2.4, -0.4, 0),
+          makeRotationKf('p2_leftArm', 30, 0, 0, 0)
+        ];
+      } else if (name === 'wave') {
+        animState.totalFrames = 40;
+        animState.tracks.p1_rightArm = [
+          makeRotationKf('p1_rightArm', 0, 0, 0, 0),
+          makeRotationKf('p1_rightArm', 10, -2.2, 0.2, -0.4),
+          makeRotationKf('p1_rightArm', 20, -2.2, 0.2, -0.8),
+          makeRotationKf('p1_rightArm', 30, -2.2, 0.2, -0.4),
+          makeRotationKf('p1_rightArm', 40, 0, 0, 0)
+        ];
+        animState.tracks.p2_rightArm = [
+          makeRotationKf('p2_rightArm', 0, 0, 0, 0),
+          makeRotationKf('p2_rightArm', 10, -2.2, -0.2, 0.4),
+          makeRotationKf('p2_rightArm', 20, -2.2, -0.2, 0.8),
+          makeRotationKf('p2_rightArm', 30, -2.2, -0.2, 0.4),
+          makeRotationKf('p2_rightArm', 40, 0, 0, 0)
+        ];
+      } else if (name === 'walk') {
+        animState.totalFrames = 30;
+        animState.tracks.p1_rightArm = [
+          makeRotationKf('p1_rightArm', 0, -0.6, 0, 0),
+          makeRotationKf('p1_rightArm', 15, 0.6, 0, 0),
+          makeRotationKf('p1_rightArm', 30, -0.6, 0, 0)
+        ];
+        animState.tracks.p1_leftArm = [
+          makeRotationKf('p1_leftArm', 0, 0.6, 0, 0),
+          makeRotationKf('p1_leftArm', 15, -0.6, 0, 0),
+          makeRotationKf('p1_leftArm', 30, 0.6, 0, 0)
+        ];
+        animState.tracks.p1_rightLeg = [
+          makeRotationKf('p1_rightLeg', 0, 0.6, 0, 0),
+          makeRotationKf('p1_rightLeg', 15, -0.6, 0, 0),
+          makeRotationKf('p1_rightLeg', 30, 0.6, 0, 0)
+        ];
+        animState.tracks.p1_leftLeg = [
+          makeRotationKf('p1_leftLeg', 0, -0.6, 0, 0),
+          makeRotationKf('p1_leftLeg', 15, 0.6, 0, 0),
+          makeRotationKf('p1_leftLeg', 30, -0.6, 0, 0)
+        ];
+      } else if (name === 'slash') {
+        animState.totalFrames = 24;
+        animState.tracks.p1_rightArm = [
+          makeRotationKf('p1_rightArm', 0, -0.6, 0.4, -0.3),
+          makeRotationKf('p1_rightArm', 8, -1.9, -0.5, 0.2),
+          makeRotationKf('p1_rightArm', 24, 0, 0, 0)
+        ];
+        animState.tracks.p1_body = [
+          makeRotationKf('p1_body', 0, 0, -0.35, 0),
+          makeRotationKf('p1_body', 8, 0, 0.45, 0),
+          makeRotationKf('p1_body', 24, 0, 0, 0)
+        ];
+      }
+
+      document.getElementById('totalFramesInput').value = animState.totalFrames;
+      resizeTimelineCanvas();
+      setCurrentFrame(0);
+      recordHistory();
+      showToast(`Loaded preset: ${name}`);
+    }
+
+    let highlightWireframeBox = null;
+    let gizmoRoot = null;
+    let gizmoInteractiveHandles = [];
+
+    function initStudio() {
+      const container = document.getElementById('workspaceViewport');
+      const canvas = document.getElementById('anim-canvas');
+      const interactionLayer = document.getElementById('viewportInteractionLayer');
+
+      interactionLayer.addEventListener('contextmenu', (e) => e.preventDefault());
+
+      let initialSkinP1 = null;
+      try {
+        initialSkinP1 = localStorage.getItem('minecraft_active_skin');
+      } catch (e) {}
+
+      if (!initialSkinP1 || initialSkinP1.length < 100 || !initialSkinP1.startsWith('data:image')) {
+        initialSkinP1 = generateSteveDataUrl();
+      }
+
+      poseViewer = new skinview3d.SkinViewer({
+        canvas: canvas,
+        width: container.clientWidth || window.innerWidth,
+        height: container.clientHeight || (window.innerHeight - 250),
+        skin: initialSkinP1,
+        preserveDrawingBuffer: true
+      });
+
+      if (poseViewer.controls) {
+        try {
+          if (typeof poseViewer.controls.dispose === 'function') poseViewer.controls.dispose();
+          poseViewer.controls.enabled = false;
+        } catch (e) {}
+        poseViewer.controls = null;
+      }
+
+      updateCameraFromSpherical();
+
+      player1 = poseViewer.playerObject;
+      player1.position.x = -14;
+
+      player2 = new skinview3d.PlayerObject();
+      player2.position.x = 14;
+      poseViewer.scene.add(player2);
+
+      loadSkinToPlayer(player2, 'https://images.weserv.nl/?url=minotar.net/skin/Alex&output=png');
+      removeCapes();
+
+      setupJointPivots();
+
+      const grid = new THREE.GridHelper(120, 60, 0x3b4252, 0x1a1d24);
+      grid.position.y = -16.02;
+      poseViewer.scene.add(grid);
+
+      const shadowPlaneGeo = new THREE.PlaneGeometry(120, 120);
+      const shadowPlaneMat = new THREE.ShadowMaterial({ opacity: 0.35 });
+      shadowPlane = new THREE.Mesh(shadowPlaneGeo, shadowPlaneMat);
+      shadowPlane.rotation.x = -Math.PI / 2;
+      shadowPlane.position.y = -16.01;
+      shadowPlane.receiveShadow = true;
+      shadowPlane.visible = false;
+      poseViewer.scene.add(shadowPlane);
+
+      setupBoundingBox();
+      setupGizmoVisuals();
+
+      if (poseViewer.cameraLight) poseViewer.cameraLight.intensity = 0.0;
+      if (poseViewer.globalLight) poseViewer.globalLight.intensity = 0.0;
+
+      ambientLight = new THREE.AmbientLight(0xffffff, 1.05);
+      poseViewer.scene.add(ambientLight);
+
+      sunLight = new THREE.DirectionalLight(0xffffff, 0);
+      sunLight.position.set(20, 32, 20);
+      sunLight.target.position.set(0, 0, 0);
+      sunLight.castShadow = true;
+      poseViewer.scene.add(sunLight);
+      poseViewer.scene.add(sunLight.target);
+
+      fillLight = new THREE.PointLight(0x38bdf8, 0, 80, 0.8);
+      fillLight.position.set(-15, 10, 15);
+      poseViewer.scene.add(fillLight);
+
+      setup3DViewportInteraction(interactionLayer);
+
+      selectChar('p1');
+      selectLimb('head');
+
+      [player1, player2].forEach((p, idx) => {
+        p.position.set(idx === 0 ? -14 : 14, 0, 0);
+        p.rotation.set(0, 0, 0);
+        ['head', 'body', 'rightArm', 'leftArm', 'rightLeg', 'leftLeg'].forEach(limb => {
+          if (p.skin && p.skin[limb]) p.skin[limb].rotation.set(0, 0, 0);
+        });
+      });
+
+      applyLightingMode('flat');
+      updateTrackLabelsUI();
+      resizeTimelineCanvas();
+      setCurrentFrame(0);
+      recordHistory();
+
+      function mainLoop(now) {
+        handleKeyboardNavigation();
+        removeCapes();
+
+        if (animState.isPlaying) {
+          const delta = (now - animState.lastPlayTime) / 1000;
+          animState.currentFrame += delta * animState.fps;
+          if (animState.currentFrame > animState.totalFrames) {
+            animState.currentFrame = 0;
+          }
+          document.getElementById('transportFrameText').textContent = `F: ${Math.floor(animState.currentFrame).toString().padStart(2, '0')}`;
+          document.getElementById('hudFrameReadout').textContent = `${Math.floor(animState.currentFrame)} / ${animState.totalFrames}`;
+          applyAnimationAtCurrentFrame();
+          renderTimeline();
+        }
+        animState.lastPlayTime = now;
+
+        if (poseViewer) {
+          poseViewer.render();
+        }
+        requestAnimationFrame(mainLoop);
+      }
+      requestAnimationFrame(mainLoop);
+    }
+
+    function updateCharacterMaterials() {
+      if (!poseViewer) return;
+      const isFlat = currentLightingMode === 'flat';
+      [player1, player2].forEach(p => {
+        if (!p) return;
+        p.traverse(c => {
+          if (c.isMesh) {
+            c.castShadow = !isFlat;
+            c.receiveShadow = !isFlat;
+            if (c.material) {
+              c.material.roughness = isFlat ? 1.0 : 0.65;
+              c.material.metalness = isFlat ? 0.0 : 0.05;
+              c.material.needsUpdate = true;
+            }
+          }
+        });
+      });
+    }
+
+    function setupJointPivots() {
+      const limbs = ['head', 'body', 'rightArm', 'leftArm', 'rightLeg', 'leftLeg'];
+      [ { char: 'p1', p: player1 }, { char: 'p2', p: player2 } ].forEach(({ char, p }) => {
+        if (!p || !p.skin) return;
+        limbOffsets[char] = {};
+        limbs.forEach(k => {
+          if (p.skin[k]) {
+            limbOffsets[char][k] = {
+              basePos: p.skin[k].position.clone(),
+              baseRot: p.skin[k].rotation.clone()
+            };
+          }
+        });
+        limbOffsets[char].root = {
+          basePos: p.position.clone(),
+          baseRot: p.rotation.clone()
+        };
+      });
+    }
+
+    function setupBoundingBox() {
+      const geom = new THREE.BoxGeometry(1, 1, 1);
+      const edges = new THREE.EdgesGeometry(geom);
+      const mat = new THREE.LineBasicMaterial({ color: 0x94a3b8, linewidth: 1, depthTest: false });
+      highlightWireframeBox = new THREE.LineSegments(edges, mat);
+      highlightWireframeBox.renderOrder = 9998;
+      poseViewer.scene.add(highlightWireframeBox);
+    }
+
+    /* =========================================================
+       100% ACCURATE VERTEX SAMPLING BOUNDING BOX
+       Samples actual geometry vertices inside the limb group
+       ========================================================= */
+    const _tempVertex = new THREE.Vector3();
+
+    function getLimbLocalBounds(obj) {
+      if (!obj) return null;
+      obj.updateWorldMatrix(true, true);
+      const invWorld = obj.matrixWorld.clone().invert();
+      const localBox = new THREE.Box3();
+      let foundVertices = false;
+
+      const meshes = [];
+      if (obj.innerLayer) {
+        meshes.push(obj.innerLayer);
+      } else {
+        obj.traverse(c => {
+          if (c.isMesh && c !== highlightWireframeBox && c.geometry && !c.name.toLowerCase().includes('cape')) {
+            meshes.push(c);
+          }
+        });
+      }
+
+      meshes.forEach(mesh => {
+        mesh.updateWorldMatrix(true, false);
+        const posAttr = mesh.geometry.attributes.position;
+        if (posAttr) {
+          const matrix = mesh.matrixWorld.clone().premultiply(invWorld);
+          for (let i = 0; i < posAttr.count; i++) {
+            _tempVertex.fromBufferAttribute(posAttr, i);
+            _tempVertex.applyMatrix4(matrix);
+            localBox.expandByPoint(_tempVertex);
+          }
+          foundVertices = true;
+        }
+      });
+
+      return foundVertices ? localBox : null;
+    }
+
+    function updateHighlightBox() {
+      if (!highlightWireframeBox) return;
+      const obj = getLimbObject(`${activeCharKey}_${activeLimbKey}`);
+      if (!obj) {
+        highlightWireframeBox.visible = false;
+        return;
+      }
+      highlightWireframeBox.visible = true;
+      highlightWireframeBox.material.color.setHex(activeCharKey === 'p1' ? 0x38bdf8 : 0x34d399);
+
+      if (activeLimbKey === 'root') {
+        const rootBox = new THREE.Box3().setFromObject(obj);
+        const size = new THREE.Vector3();
+        rootBox.getSize(size);
+        const center = new THREE.Vector3();
+        rootBox.getCenter(center);
+
+        highlightWireframeBox.scale.copy(size).addScalar(0.4);
+        highlightWireframeBox.position.copy(center);
+        highlightWireframeBox.quaternion.set(0, 0, 0, 1);
+        return;
+      }
+
+      const bounds = getLimbLocalBounds(obj);
+      if (bounds) {
+        const size = new THREE.Vector3();
+        bounds.getSize(size);
+        size.addScalar(0.45); // slight padding around pixels
+
+        const localCenter = new THREE.Vector3();
+        bounds.getCenter(localCenter);
+
+        highlightWireframeBox.scale.copy(size);
+
+        obj.updateWorldMatrix(true, false);
+        const worldCenter = obj.localToWorld(localCenter);
+        highlightWireframeBox.position.copy(worldCenter);
+
+        const worldQuat = new THREE.Quaternion();
+        obj.getWorldQuaternion(worldQuat);
+        highlightWireframeBox.quaternion.copy(worldQuat);
+      }
+    }
+
+    function setupGizmoVisuals() {
+      gizmoRoot = new THREE.Group();
+      poseViewer.scene.add(gizmoRoot);
+      rebuildGizmoMeshes();
+    }
+
+    function rebuildGizmoMeshes() {
+      if (!gizmoRoot) return;
+      while (gizmoRoot.children.length > 0) gizmoRoot.remove(gizmoRoot.children[0]);
+      gizmoInteractiveHandles = [];
+
+      const centerSphereGeom = new THREE.SphereGeometry(0.3, 12, 12);
+      const centerSphereMat = new THREE.MeshBasicMaterial({ color: 0xffffff, depthTest: false });
+      const centerPivot = new THREE.Mesh(centerSphereGeom, centerSphereMat);
+      centerPivot.renderOrder = 9999;
+      gizmoRoot.add(centerPivot);
+
+      if (currentMode === 'rotate') {
+        const radius = 4.4;
+        const tube = 0.05;
+
+        const redAngles = [Math.PI / 4, 3 * Math.PI / 4, 5 * Math.PI / 4, 7 * Math.PI / 4];
+        const ringX = createRotationRing(radius, tube, 0xef4444, 'x', [0, Math.PI / 2, 0], redAngles);
+        const greenAngles = [Math.PI / 2, 3 * Math.PI / 2];
+        const ringY = createRotationRing(radius, tube, 0x10b981, 'y', [Math.PI / 2, 0, 0], greenAngles);
+        const blueAngles = [0, Math.PI / 2, Math.PI, 3 * Math.PI / 2];
+        const ringZ = createRotationRing(radius, tube, 0x3b82f6, 'z', [0, 0, 0], blueAngles);
+
+        gizmoRoot.add(ringX, ringY, ringZ);
+      } else {
+        const length = 5.2;
+        const arrowX = createMoveArrow(length, 0xef4444, 'x', [0, 0, -Math.PI / 2]);
+        const arrowY = createMoveArrow(length, 0x10b981, 'y', [0, 0, 0]);
+        const arrowZ = createMoveArrow(length, 0x3b82f6, 'z', [Math.PI / 2, 0, 0]);
+
+        gizmoRoot.add(arrowX, arrowY, arrowZ);
+      }
+
+      updateGizmoWorldPosition();
+      updateHighlightBox();
+    }
+
+    function createRotationRing(radius, tube, hex, axis, rot, angles) {
+      const group = new THREE.Group();
+      const geom = new THREE.TorusGeometry(radius, tube, 6, 48);
+      const mat = new THREE.MeshBasicMaterial({ color: hex, depthTest: false, transparent: true, opacity: 0.5 });
+      const ringLine = new THREE.Mesh(geom, mat);
+      ringLine.renderOrder = 9998;
+      group.add(ringLine);
+
+      const sphGeom = new THREE.SphereGeometry(0.5, 12, 12);
+      const sphMat = new THREE.MeshBasicMaterial({ color: hex, depthTest: false });
+
+      angles.forEach(ang => {
+        const dot = new THREE.Mesh(sphGeom, sphMat);
+        dot.position.set(radius * Math.cos(ang), radius * Math.sin(ang), 0);
+        dot.renderOrder = 9999;
+        dot.userData = { axis: axis, mode: 'rotate' };
+        group.add(dot);
+        gizmoInteractiveHandles.push(dot);
+      });
+
+      group.rotation.set(rot[0], rot[1], rot[2]);
+      return group;
+    }
+
+    function createMoveArrow(length, hex, axis, rot) {
+      const group = new THREE.Group();
+      const shaftGeom = new THREE.CylinderGeometry(0.1, 0.1, length, 8);
+      const mat = new THREE.MeshBasicMaterial({ color: hex, depthTest: false });
+      const shaft = new THREE.Mesh(shaftGeom, mat);
+      shaft.position.y = length / 2;
+      shaft.renderOrder = 9999;
+
+      const coneGeom = new THREE.ConeGeometry(0.4, 1.2, 12);
+      const cone = new THREE.Mesh(coneGeom, mat);
+      cone.position.y = length;
+      cone.renderOrder = 9999;
+
+      group.add(shaft, cone);
+      group.rotation.set(rot[0], rot[1], rot[2]);
+
+      const data = { axis: axis, mode: 'translate' };
+      shaft.userData = data;
+      cone.userData = data;
+      gizmoInteractiveHandles.push(shaft, cone);
+      return group;
+    }
+
+    function updateGizmoWorldPosition() {
+      if (!gizmoRoot) return;
+      const obj = getLimbObject(`${activeCharKey}_${activeLimbKey}`);
+      if (!obj) {
+        gizmoRoot.visible = false;
+        return;
+      }
+      gizmoRoot.visible = true;
+
+      const worldPos = new THREE.Vector3();
+      obj.getWorldPosition(worldPos);
+      gizmoRoot.position.copy(worldPos);
+
+      if (currentSpace === 'local' && activeLimbKey !== 'root') {
+        const worldQuat = new THREE.Quaternion();
+        obj.getWorldQuaternion(worldQuat);
+        gizmoRoot.quaternion.copy(worldQuat);
+      } else {
+        gizmoRoot.rotation.set(0, 0, 0);
+      }
+    }
+
+    function setup3DViewportInteraction(interactionLayer) {
+      const raycaster = new THREE.Raycaster();
+      const mouse = new THREE.Vector2();
+
+      let isDraggingGizmo = false;
+      let dragAxis = null;
+      let startHitWorld = new THREE.Vector3();
+      let startPivotWorld = new THREE.Vector3();
+      let startLimbPos = new THREE.Vector3();
+      let startLimbQuat = new THREE.Quaternion();
+      let activeConstraintPlane = new THREE.Plane();
+      let axisWorldDir = new THREE.Vector3();
+      let startRotVec = new THREE.Vector3();
+
+      function updateRay(clientX, clientY) {
+        const rect = interactionLayer.getBoundingClientRect();
+        mouse.x = ((clientX - rect.left) / rect.width) * 2 - 1;
+        mouse.y = -((clientY - rect.top) / rect.height) * 2 + 1;
+        raycaster.setFromCamera(mouse, poseViewer.camera);
+      }
+
+      interactionLayer.addEventListener('mousedown', (e) => {
+        if (e.button === 2) {
+          isRightDraggingCamera = true;
+          lastRightMouse = { x: e.clientX, y: e.clientY };
+          return;
+        }
+
+        if (e.button === 0) {
+          updateRay(e.clientX, e.clientY);
+
+          const gizmoHits = raycaster.intersectObjects(gizmoInteractiveHandles, true);
+          if (gizmoHits.length > 0) {
+            isDraggingGizmo = true;
+            dragAxis = gizmoHits[0].object.userData.axis;
+
+            const targetObj = (isTorsoLocked && activeLimbKey === 'body')
+              ? getLimbObject(`${activeCharKey}_root`)
+              : getLimbObject(`${activeCharKey}_${activeLimbKey}`);
+
+            startLimbPos.copy(targetObj.position);
+            startLimbQuat.copy(targetObj.quaternion);
+
+            targetObj.getWorldPosition(startPivotWorld);
+            axisWorldDir.copy(getGizmoAxisDirection(dragAxis));
+
+            if (currentMode === 'translate') {
+              const camToPivot = poseViewer.camera.position.clone().sub(startPivotWorld);
+              let planeNorm = new THREE.Vector3().crossVectors(axisWorldDir, camToPivot).cross(axisWorldDir).normalize();
+              if (planeNorm.lengthSq() < 0.001) planeNorm.copy(poseViewer.camera.getWorldDirection(new THREE.Vector3()).negate());
+              activeConstraintPlane.setFromNormalAndCoplanarPoint(planeNorm, startPivotWorld);
+              raycaster.ray.intersectPlane(activeConstraintPlane, startHitWorld);
+            } else {
+              activeConstraintPlane.setFromNormalAndCoplanarPoint(axisWorldDir, startPivotWorld);
+              const hit = new THREE.Vector3();
+              if (raycaster.ray.intersectPlane(activeConstraintPlane, hit)) {
+                startHitWorld.copy(hit);
+                startRotVec.copy(startHitWorld).sub(startPivotWorld).normalize();
+              } else {
+                startRotVec.set(0, 1, 0);
+              }
+            }
+            return;
+          }
+
+          const selectableMeshes = [];
+          [ { char: 'p1', obj: player1 }, { char: 'p2', obj: player2 } ].forEach(({ char, obj }) => {
+            if (!obj) return;
+            obj.traverse(c => {
+              if (c.isMesh && c.visible) {
+                c.userData.characterOwner = char;
+                selectableMeshes.push(c);
+              }
+            });
+          });
+
+          const playerHits = raycaster.intersectObjects(selectableMeshes, false);
+          if (playerHits.length > 0) {
+            const hitMesh = playerHits[0].object;
+            const charOwner = hitMesh.userData.characterOwner || 'p1';
+            const targetP = charOwner === 'p1' ? player1 : player2;
+            const limbKeys = ['head', 'body', 'rightArm', 'leftArm', 'rightLeg', 'leftLeg'];
+
+            selectChar(charOwner);
+
+            for (const key of limbKeys) {
+              let found = false;
+              if (targetP.skin && targetP.skin[key]) {
+                targetP.skin[key].traverse(c => { if (c === hitMesh) found = true; });
+                if (found) {
+                  selectLimb(key);
+                  showToast(`Selected: ${charOwner.toUpperCase()} ${limbDisplayNames[key]}`);
+                  return;
+                }
+              }
+            }
+          }
+        }
+      });
+
+      window.addEventListener('mousemove', (e) => {
+        const isRightHeld = (e.buttons & 2) !== 0;
+
+        if (isRightDraggingCamera && isRightHeld) {
+          const dx = e.clientX - lastRightMouse.x;
+          const dy = e.clientY - lastRightMouse.y;
+          lastRightMouse = { x: e.clientX, y: e.clientY };
+
+          camTheta -= dx * 0.008;
+          camPhi = Math.max(0.04, Math.min(Math.PI - 0.04, camPhi - dy * 0.008));
+          updateCameraFromSpherical();
+          return;
+        } else {
+          isRightDraggingCamera = false;
+        }
+
+        const isLeftHeld = (e.buttons & 1) !== 0;
+        if (!isDraggingGizmo || !isLeftHeld) {
+          isDraggingGizmo = false;
+          return;
+        }
+
+        const targetObj = (isTorsoLocked && activeLimbKey === 'body')
+          ? getLimbObject(`${activeCharKey}_root`)
+          : getLimbObject(`${activeCharKey}_${activeLimbKey}`);
+
+        if (!targetObj) return;
+
+        updateRay(e.clientX, e.clientY);
+
+        if (currentMode === 'translate') {
+          const currentHitWorld = new THREE.Vector3();
+          if (raycaster.ray.intersectPlane(activeConstraintPlane, currentHitWorld)) {
+            const worldDelta = currentHitWorld.sub(startHitWorld);
+            const distance = worldDelta.dot(axisWorldDir);
+
+            if (currentSpace === 'local' && activeLimbKey !== 'root' && !isTorsoLocked && targetObj.parent) {
+              const parentQuatInv = targetObj.parent.getWorldQuaternion(new THREE.Quaternion()).invert();
+              const localDisplacement = axisWorldDir.clone().multiplyScalar(distance).applyQuaternion(parentQuatInv);
+              targetObj.position.copy(startLimbPos).add(localDisplacement);
+            } else {
+              targetObj.position.copy(startLimbPos).add(axisWorldDir.clone().multiplyScalar(distance));
+            }
+          }
+        } else {
+          const currentHitWorld = new THREE.Vector3();
+          if (raycaster.ray.intersectPlane(activeConstraintPlane, currentHitWorld)) {
+            const currentRotVec = currentHitWorld.sub(startPivotWorld).normalize();
+            
+            if (startRotVec.lengthSq() > 0.001 && currentRotVec.lengthSq() > 0.001) {
+              const cross = new THREE.Vector3().crossVectors(startRotVec, currentRotVec);
+              const dot = Math.max(-1, Math.min(1, startRotVec.dot(currentRotVec)));
+              let signedAngle = Math.atan2(cross.dot(axisWorldDir), dot);
+
+              if (currentSpace === 'local' && activeLimbKey !== 'root' && !isTorsoLocked) {
+                const localAxis = new THREE.Vector3(
+                  dragAxis === 'x' ? 1 : 0,
+                  dragAxis === 'y' ? 1 : 0,
+                  dragAxis === 'z' ? 1 : 0
+                );
+                const deltaQuat = new THREE.Quaternion().setFromAxisAngle(localAxis, signedAngle);
+                targetObj.quaternion.copy(startLimbQuat).multiply(deltaQuat);
+              } else {
+                const deltaQuat = new THREE.Quaternion().setFromAxisAngle(axisWorldDir, signedAngle);
+                targetObj.quaternion.copy(startLimbQuat).premultiply(deltaQuat);
+              }
+            }
+          }
+        }
+
+        updateGizmoWorldPosition();
+        updateHighlightBox();
+      });
+
+      window.addEventListener('mouseup', () => {
+        isRightDraggingCamera = false;
+        if (isDraggingGizmo) {
+          isDraggingGizmo = false;
+          dragAxis = null;
+          const kfKey = (isTorsoLocked && activeLimbKey === 'body')
+            ? `${activeCharKey}_root`
+            : `${activeCharKey}_${activeLimbKey}`;
+          addKeyframe(kfKey, Math.round(animState.currentFrame));
+          recordHistory();
+        }
+      });
+
+      interactionLayer.addEventListener('wheel', (e) => {
+        e.preventDefault();
+        camRadius = Math.max(12, Math.min(180, camRadius + e.deltaY * 0.05));
+        updateCameraFromSpherical();
+      }, { passive: false });
+    }
+
+    function getGizmoAxisDirection(axisKey) {
+      const dir = new THREE.Vector3();
+      if (axisKey === 'x') dir.set(1, 0, 0);
+      else if (axisKey === 'y') dir.set(0, 1, 0);
+      else if (axisKey === 'z') dir.set(0, 0, 1);
+
+      if (currentSpace === 'local' && activeLimbKey !== 'root' && !isTorsoLocked) {
+        const obj = getLimbObject(`${activeCharKey}_${activeLimbKey}`);
+        if (obj) {
+          const quat = new THREE.Quaternion();
+          obj.getWorldQuaternion(quat);
+          dir.applyQuaternion(quat);
+        }
+      }
+      return dir.normalize();
+    }
+
+    function selectChar(charKey) {
+      activeCharKey = charKey;
+      const isP1 = charKey === 'p1';
+      document.getElementById('btnCharP1').className = isP1 ? 'btn active-p1' : 'btn';
+      document.getElementById('btnCharP2').className = !isP1 ? 'btn active-p2' : 'btn';
+
+      const badge = document.getElementById('activeCharBadge');
+      badge.className = isP1 ? 'badge-p1' : 'badge-p2';
+      badge.textContent = isP1 ? 'Active: Player 1' : 'Active: Player 2';
+
+      const hudChar = document.getElementById('hudActiveCharText');
+      hudChar.textContent = isP1 ? 'Player 1' : 'Player 2';
+      hudChar.style.color = isP1 ? 'var(--p1-color)' : 'var(--p2-color)';
+
+      updateGizmoWorldPosition();
+      updateHighlightBox();
+      updateTrackLabelsUI();
+      renderTimeline();
+    }
+
+    function selectLimb(key) {
+      activeLimbKey = key;
+      document.getElementById('hudActiveLimbText').textContent = limbDisplayNames[key];
+      document.querySelectorAll('.btn-limb').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.limb === key);
+      });
+      rebuildGizmoMeshes();
+      updateGizmoWorldPosition();
+      updateHighlightBox();
+      updateTrackLabelsUI();
+      renderTimeline();
+    }
+
+    function toggleTorsoLock() {
+      isTorsoLocked = !isTorsoLocked;
+      const btn = document.getElementById('torsoLockBtn');
+      btn.textContent = isTorsoLocked ? '🔒 Torso Lock: ON' : '🔒 Torso Lock: OFF';
+      btn.style.borderColor = isTorsoLocked ? '#fbbf24' : '';
+      btn.style.color = isTorsoLocked ? '#fbbf24' : '';
+      document.getElementById('hudLockStatus').textContent = isTorsoLocked ? 'ON' : 'OFF';
+      document.getElementById('hudLockStatus').style.color = isTorsoLocked ? '#fbbf24' : '#fff';
+      updateGizmoWorldPosition();
+      showToast(isTorsoLocked ? 'Torso Lock Enabled (Root Motion)' : 'Torso Lock Disabled');
+    }
+
+    document.getElementById('torsoLockBtn').onclick = toggleTorsoLock;
+
+    function toggleMode() {
+      currentMode = currentMode === 'rotate' ? 'translate' : 'rotate';
+      const isRot = currentMode === 'rotate';
+      document.getElementById('hudModeText').textContent = isRot ? 'Rotation' : 'Position';
+      rebuildGizmoMeshes();
+      showToast(`Mode: ${isRot ? 'Rotation' : 'Position'}`);
+    }
+
+    function toggleSpace() {
+      currentSpace = currentSpace === 'local' ? 'world' : 'local';
+      updateGizmoWorldPosition();
+      updateHighlightBox();
+      showToast(`Space: ${currentSpace}`);
+    }
+
+    function handleKeyboardNavigation() {
+      if (!poseViewer || !poseViewer.camera) return;
+      if (document.activeElement && (document.activeElement.tagName === 'INPUT' || document.activeElement.tagName === 'SELECT')) {
+        return;
+      }
+
+      const moveSpeed = 0.6;
+      const camForward = new THREE.Vector3();
+      poseViewer.camera.getWorldDirection(camForward);
+      const camRight = new THREE.Vector3().crossVectors(camForward, poseViewer.camera.up).normalize();
+
+      let moved = false;
+      if (keysDown.w) { camTarget.addScaledVector(camForward, moveSpeed); moved = true; }
+      if (keysDown.s) { camTarget.addScaledVector(camForward, -moveSpeed); moved = true; }
+      if (keysDown.a) { camTarget.addScaledVector(camRight, -moveSpeed); moved = true; }
+      if (keysDown.d) { camTarget.addScaledVector(camRight, moveSpeed); moved = true; }
+      if (keysDown.q) { camTarget.y -= moveSpeed; moved = true; }
+      if (keysDown.e) { camTarget.y += moveSpeed; moved = true; }
+
+      if (moved) updateCameraFromSpherical();
+    }
+
+    function updateCameraFromSpherical() {
+      if (!poseViewer) return;
+      poseViewer.camera.position.x = camTarget.x + camRadius * Math.sin(camPhi) * Math.sin(camTheta);
+      poseViewer.camera.position.y = camTarget.y + camRadius * Math.cos(camPhi);
+      poseViewer.camera.position.z = camTarget.z + camRadius * Math.sin(camPhi) * Math.cos(camTheta);
+      poseViewer.camera.lookAt(camTarget);
+    }
+
+    document.getElementById('btnCharP1').onclick = () => selectChar('p1');
+    document.getElementById('btnCharP2').onclick = () => selectChar('p2');
+
+    document.querySelectorAll('.btn-limb').forEach(btn => {
+      btn.onclick = () => selectLimb(btn.dataset.limb);
+    });
+
+    document.querySelectorAll('.track-filter-btn').forEach(btn => {
+      btn.onclick = () => {
+        document.querySelectorAll('.track-filter-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        activeTrackFilter = btn.dataset.filter;
+        updateTrackLabelsUI();
+        resizeTimelineCanvas();
+      };
+    });
+
+    document.getElementById('toggleLightingModeBtn').onclick = () => {
+      applyLightingMode(currentLightingMode === 'flat' ? 'studio' : 'flat');
+    };
+
+    document.getElementById('playPauseBtn').onclick = () => {
+      animState.isPlaying = !animState.isPlaying;
+      document.getElementById('playPauseBtn').textContent = animState.isPlaying ? 'Pause' : 'Play';
+      if (animState.isPlaying) animState.lastPlayTime = performance.now();
+    };
+
+    document.getElementById('firstFrameBtn').onclick = () => setCurrentFrame(0);
+    document.getElementById('lastFrameBtn').onclick = () => setCurrentFrame(animState.totalFrames);
+    document.getElementById('prevFrameBtn').onclick = () => setCurrentFrame(Math.floor(animState.currentFrame - 1));
+    document.getElementById('nextFrameBtn').onclick = () => setCurrentFrame(Math.floor(animState.currentFrame + 1));
+
+    document.getElementById('addKeyBtn').onclick = () => {
+      const f = Math.round(animState.currentFrame);
+      const kfKey = `${activeCharKey}_${activeLimbKey}`;
+      addKeyframe(kfKey, f);
+      showToast(`Keyframe: ${activeCharKey.toUpperCase()} ${limbDisplayNames[activeLimbKey]} (F:${f})`);
+    };
+
+    document.getElementById('addAllKeyBtn').onclick = () => {
+      const f = Math.round(animState.currentFrame);
+      BASE_LIMBS.forEach(l => addKeyframe(`${activeCharKey}_${l}`, f));
+      showToast(`All limbs keyframed for ${activeCharKey.toUpperCase()} (F:${f})`);
+    };
+
+    document.getElementById('addAllBothCharsKeyBtn').onclick = () => {
+      const f = Math.round(animState.currentFrame);
+      ALL_TRACK_KEYS.forEach(k => addKeyframe(k, f));
+      showToast(`Keyframed ALL channels for BOTH characters (F:${f})`);
+    };
+
+    document.getElementById('deleteKeyBtn').onclick = () => {
+      const kfKey = `${activeCharKey}_${activeLimbKey}`;
+      deleteKeyframe(kfKey, Math.round(animState.currentFrame));
+    };
+
+    document.getElementById('clearAnimBtn').onclick = () => {
+      if (confirm('Clear all animation tracks for both characters?')) {
+        ALL_TRACK_KEYS.forEach(k => { animState.tracks[k] = []; });
+        renderTimeline();
+        recordHistory();
+        showToast('Cleared all keyframes');
+      }
+    };
+
+    document.getElementById('totalFramesInput').onchange = (e) => {
+      animState.totalFrames = Math.max(10, parseInt(e.target.value) || 60);
+      resizeTimelineCanvas();
+    };
+
+    document.getElementById('fpsSelect').onchange = (e) => {
+      animState.fps = parseInt(e.target.value) || 30;
+    };
+
+    document.getElementById('animPresetSelect').onchange = (e) => {
+      if (e.target.value) {
+        loadPresetAnimation(e.target.value);
+        e.target.value = '';
+      }
+    };
+
+    document.getElementById('zeroSelectedBtn').onclick = () => {
+      const obj = getLimbObject(`${activeCharKey}_${activeLimbKey}`);
+      if (!obj) return;
+      obj.rotation.set(0, 0, 0);
+      if (activeLimbKey !== 'root' && limbOffsets[activeCharKey][activeLimbKey]) {
+        obj.position.copy(limbOffsets[activeCharKey][activeLimbKey].basePos);
+      }
+      updateGizmoWorldPosition();
+      updateHighlightBox();
+      addKeyframe(`${activeCharKey}_${activeLimbKey}`, Math.round(animState.currentFrame));
+      recordHistory();
+      showToast(`Zeroed: ${limbDisplayNames[activeLimbKey]}`);
+    };
+
+    document.getElementById('tposeBtn').onclick = () => {
+      const p = getActivePlayerObject();
+      BASE_LIMBS.forEach(l => {
+        const obj = getLimbObject(`${activeCharKey}_${l}`);
+        if (obj) {
+          obj.rotation.set(0, 0, 0);
+          if (l !== 'root' && limbOffsets[activeCharKey][l]) {
+            obj.position.copy(limbOffsets[activeCharKey][l].basePos);
+          }
+        }
+      });
+      if (p.skin) {
+        if (p.skin.rightArm) p.skin.rightArm.rotation.z = Math.PI / 2;
+        if (p.skin.leftArm) p.skin.leftArm.rotation.z = -Math.PI / 2;
+      }
+      updateGizmoWorldPosition();
+      updateHighlightBox();
+      BASE_LIMBS.forEach(l => addKeyframe(`${activeCharKey}_${l}`, Math.round(animState.currentFrame)));
+      recordHistory();
+      showToast(`T-Pose for ${activeCharKey.toUpperCase()}`);
+    };
+
+    document.getElementById('restPoseBtn').onclick = () => {
+      BASE_LIMBS.forEach(l => {
+        const obj = getLimbObject(`${activeCharKey}_${l}`);
+        if (obj) {
+          obj.rotation.set(0, 0, 0);
+          if (l !== 'root' && limbOffsets[activeCharKey][l]) {
+            obj.position.copy(limbOffsets[activeCharKey][l].basePos);
+          }
+        }
+      });
+      updateGizmoWorldPosition();
+      updateHighlightBox();
+      BASE_LIMBS.forEach(l => addKeyframe(`${activeCharKey}_${l}`, Math.round(animState.currentFrame)));
+      recordHistory();
+      showToast(`Rest Pose for ${activeCharKey.toUpperCase()}`);
+    };
+
+    window.addEventListener('keydown', (e) => {
+      if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT') return;
+
+      if (e.ctrlKey || e.metaKey) {
+        if (e.key.toLowerCase() === 'z') {
+          e.preventDefault();
+          if (e.shiftKey) redo();
+          else undo();
+          return;
+        }
+        if (e.key.toLowerCase() === 'y') {
+          e.preventDefault();
+          redo();
+          return;
+        }
+      }
+
+      if (e.code === 'Space') {
+        e.preventDefault();
+        document.getElementById('playPauseBtn').click();
+        return;
+      }
+      if (e.key.toLowerCase() === 'k') {
+        e.preventDefault();
+        if (e.shiftKey) document.getElementById('addAllKeyBtn').click();
+        else document.getElementById('addKeyBtn').click();
+        return;
+      }
+      if (e.key === 'Delete' || e.key === 'Backspace') {
+        document.getElementById('deleteKeyBtn').click();
+        return;
+      }
+      if (e.key === 'ArrowLeft') {
+        document.getElementById('prevFrameBtn').click();
+        return;
+      }
+      if (e.key === 'ArrowRight') {
+        document.getElementById('nextFrameBtn').click();
+        return;
+      }
+      if (e.key.toLowerCase() === 'r') toggleMode();
+      if (e.key.toLowerCase() === 'y') toggleSpace();
+
+      const k = e.key.toLowerCase();
+      if (k in keysDown) keysDown[k] = true;
+    });
+
+    window.addEventListener('keyup', (e) => {
+      const k = e.key.toLowerCase();
+      if (k in keysDown) keysDown[k] = false;
+    });
+
+    document.getElementById('exportJsonBtn').onclick = () => {
+      const exportData = {
+        name: "Minecraft_Duo_Moon_Animation",
+        totalFrames: animState.totalFrames,
+        fps: animState.fps,
+        tracks: animState.tracks
+      };
+      const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
+      const link = document.createElement('a');
+      link.download = 'minecraft_duo_animation.json';
+      link.href = URL.createObjectURL(blob);
+      link.click();
+      showToast('Exported duo animation JSON');
+    };
+
+    document.getElementById('importJsonBtn').onclick = () => document.getElementById('importJsonInput').click();
+    document.getElementById('importJsonInput').onchange = (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        try {
+          const json = JSON.parse(ev.target.result);
+          if (json.tracks) {
+            animState.totalFrames = json.totalFrames || 60;
+            animState.fps = json.fps || 30;
+            document.getElementById('totalFramesInput').value = animState.totalFrames;
+            document.getElementById('fpsSelect').value = animState.fps.toString();
+            ALL_TRACK_KEYS.forEach(k => {
+              animState.tracks[k] = json.tracks[k] || [];
+            });
+            updateTrackLabelsUI();
+            resizeTimelineCanvas();
+            setCurrentFrame(0);
+            recordHistory();
+            showToast(`Imported "${file.name}"`);
+          }
+        } catch (err) {
+          showToast('Invalid JSON file');
+        }
+      };
+      reader.readAsText(file);
+    };
+
+    document.getElementById('uploadSkinBtn').onclick = () => document.getElementById('skinFileInput').click();
+    document.getElementById('skinFileInput').onchange = (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        loadSkinToPlayer(getActivePlayerObject(), ev.target.result);
+        showToast(`Loaded skin on ${activeCharKey.toUpperCase()}`);
+      };
+      reader.readAsDataURL(file);
+    };
+
+    window.addEventListener('resize', () => {
+      if (poseViewer) {
+        const container = document.getElementById('workspaceViewport');
+        poseViewer.setSize(container.clientWidth, container.clientHeight);
+        updateCameraFromSpherical();
+      }
+      resizeTimelineCanvas();
+    });
+
+    window.addEventListener('DOMContentLoaded', initStudio);
+  </script>
+</body>
+</html>
