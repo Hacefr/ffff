@@ -1,0 +1,1049 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Skin Browser - Skin Studio</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/0.156.0/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/skinview3d@3.2.0/bundles/skinview3d.bundle.js"></script>
+  <style>
+    :root {
+      --bg-canvas: #0c0d10;
+      --bg-panel: #13151a;
+      --bg-card: #151821;
+      --bg-card-hover: #1b202c;
+      --border-subtle: #21252f;
+      --border-strong: #323746;
+      --border-namemc: #252a38;
+      --accent: #2563eb;
+      --accent-hover: #1d4ed8;
+      --accent-namemc: #5c8ae6;
+      --text-main: #f1f3f7;
+      --text-muted: #7e8696;
+      --star-gold: #fbbf24;
+      --star-dim: #64748b;
+      --radius: 6px;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      font-size: 12px;
+      background-color: var(--bg-canvas);
+      color: var(--text-main);
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    header {
+      background: var(--bg-panel);
+      border-bottom: 1px solid var(--border-subtle);
+      height: 44px;
+      padding: 0 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      z-index: 10;
+      flex-shrink: 0;
+    }
+
+    .brand-group {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .brand {
+      font-weight: 700;
+      font-size: 0.9rem;
+      color: #fff;
+    }
+
+    .brand-badge {
+      background: #1e283d;
+      border: 1px solid var(--accent);
+      color: #93c5fd;
+      padding: 2px 7px;
+      border-radius: 4px;
+      font-size: 0.68rem;
+      font-weight: 600;
+    }
+
+    .header-controls {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex: 1;
+      max-width: 520px;
+      margin: 0 20px;
+    }
+
+    .search-group {
+      display: flex;
+      align-items: center;
+      background: #0e1014;
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius);
+      width: 100%;
+      height: 28px;
+    }
+
+    .search-group input {
+      background: transparent;
+      border: none;
+      color: #fff;
+      padding: 0 10px;
+      font-size: 0.75rem;
+      outline: none;
+      width: 100%;
+      user-select: text;
+    }
+
+    .search-group button {
+      background: #1a1d24;
+      border: none;
+      border-left: 1px solid var(--border-subtle);
+      color: var(--text-muted);
+      height: 100%;
+      padding: 0 12px;
+      cursor: pointer;
+      font-size: 0.72rem;
+      font-weight: 500;
+    }
+
+    .search-group button:hover {
+      background: var(--border-strong);
+      color: #fff;
+    }
+
+    .top-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .btn {
+      background: #1a1d24;
+      color: var(--text-main);
+      border: 1px solid var(--border-subtle);
+      height: 28px;
+      padding: 0 12px;
+      border-radius: var(--radius);
+      cursor: pointer;
+      font-size: 0.72rem;
+      font-weight: 500;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      text-decoration: none;
+      transition: background 0.15s, border-color 0.15s;
+      white-space: nowrap;
+    }
+
+    .btn:hover {
+      background: #252a35;
+      border-color: var(--border-strong);
+      color: #fff;
+    }
+
+    .btn-primary {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: #fff;
+    }
+
+    .btn-primary:hover {
+      background: var(--accent-hover);
+      border-color: var(--accent-hover);
+    }
+
+    .filter-bar {
+      background: #101217;
+      border-bottom: 1px solid var(--border-subtle);
+      padding: 6px 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-shrink: 0;
+    }
+
+    .tab-pills {
+      display: flex;
+      gap: 6px;
+    }
+
+    .tab-btn {
+      background: transparent;
+      border: 1px solid transparent;
+      color: var(--text-muted);
+      padding: 4px 10px;
+      border-radius: var(--radius);
+      font-size: 0.72rem;
+      cursor: pointer;
+      font-weight: 500;
+      transition: all 0.15s;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    .tab-btn:hover {
+      color: #fff;
+      background: #171a22;
+    }
+
+    .tab-btn.active {
+      background: #1c2230;
+      color: #93c5fd;
+      border-color: #2b3954;
+    }
+
+    .tab-badge {
+      background: rgba(251, 191, 36, 0.15);
+      color: var(--star-gold);
+      padding: 1px 6px;
+      border-radius: 10px;
+      font-size: 0.65rem;
+      font-weight: 600;
+    }
+
+    .viewport {
+      flex: 1;
+      overflow-y: auto;
+      padding: 16px;
+      background: #090a0d;
+    }
+
+    .namemc-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+      gap: 12px;
+      max-width: 1400px;
+      margin: 0 auto;
+    }
+
+    .mc-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-namemc);
+      border-radius: var(--radius);
+      padding: 8px 10px;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+      cursor: pointer;
+      transition: transform 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+      overflow: hidden;
+      min-height: 250px;
+    }
+
+    .mc-card:hover {
+      transform: translateY(-3px);
+      border-color: #3b82f6;
+      box-shadow: 0 6px 16px rgba(0, 0, 0, 0.45);
+      background: var(--bg-card-hover);
+    }
+
+    .mc-card-header {
+      width: 100%;
+      text-align: center;
+      margin-bottom: 2px;
+    }
+
+    .mc-username {
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: var(--accent-namemc);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      display: inline-block;
+      max-width: 100%;
+    }
+
+    .mc-rank {
+      font-size: 0.7rem;
+      color: #64748b;
+      font-family: monospace;
+      text-align: left;
+      width: 100%;
+      margin-bottom: 2px;
+      font-weight: 600;
+    }
+
+    .mc-render-box {
+      flex: 1;
+      width: 100%;
+      min-height: 175px;
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 4px;
+      background-image: 
+        linear-gradient(45deg, rgba(255, 255, 255, 0.025) 25%, transparent 25%), 
+        linear-gradient(-45deg, rgba(255, 255, 255, 0.025) 25%, transparent 25%), 
+        linear-gradient(45deg, transparent 75%, rgba(255, 255, 255, 0.025) 75%), 
+        linear-gradient(-45deg, transparent 75%, rgba(255, 255, 255, 0.025) 75%);
+      background-size: 14px 14px;
+      background-position: 0 0, 0 7px, 7px -7px, -7px 0px;
+    }
+
+    .mc-render-box img {
+      max-height: 165px;
+      width: auto;
+      object-fit: contain;
+      image-rendering: pixelated;
+      filter: drop-shadow(0 6px 8px rgba(0, 0, 0, 0.5));
+      transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+
+    .mc-card:hover .mc-render-box img {
+      transform: scale(1.06);
+    }
+
+    .mc-card-overlay {
+      position: absolute;
+      inset: 0;
+      background: rgba(10, 12, 16, 0.84);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 12px;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.15s ease;
+      border-radius: var(--radius);
+    }
+
+    .mc-card:hover .mc-card-overlay {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .mc-card-overlay .btn {
+      width: 100%;
+      height: 26px;
+      font-size: 0.7rem;
+    }
+
+    .mc-card-footer {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      width: 100%;
+      margin-top: 6px;
+      font-size: 0.68rem;
+    }
+
+    .mc-age {
+      color: #64748b;
+    }
+
+    /* Star button on card */
+    .star-btn {
+      background: transparent;
+      border: 1px solid transparent;
+      color: var(--star-dim);
+      padding: 2px 6px;
+      border-radius: 4px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 0.68rem;
+      font-weight: 500;
+      transition: all 0.15s ease;
+    }
+
+    .star-btn:hover {
+      background: rgba(251, 191, 36, 0.12);
+      color: var(--star-gold);
+    }
+
+    .star-btn.is-starred {
+      color: var(--star-gold);
+      background: rgba(251, 191, 36, 0.12);
+      border-color: rgba(251, 191, 36, 0.3);
+    }
+
+    .star-btn .star-icon {
+      font-size: 0.85rem;
+      line-height: 1;
+      transition: transform 0.15s ease;
+    }
+
+    .star-btn:active .star-icon {
+      transform: scale(1.35);
+    }
+
+    .empty-state {
+      grid-column: 1 / -1;
+      text-align: center;
+      padding: 60px 16px;
+      color: var(--text-muted);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+    }
+
+    .load-more-container {
+      max-width: 1400px;
+      margin: 20px auto;
+      display: flex;
+      justify-content: center;
+    }
+
+    .load-more-btn {
+      height: 36px;
+      padding: 0 24px;
+      font-size: 0.8rem;
+    }
+
+    /* 3D Inspect Modal */
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.78);
+      backdrop-filter: blur(3px);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 100;
+      padding: 16px;
+    }
+
+    .modal-backdrop.active {
+      display: flex;
+    }
+
+    .modal-box {
+      width: 90vw;
+      max-width: 620px;
+      background: var(--bg-panel);
+      border: 1px solid var(--border-strong);
+      border-radius: var(--radius);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.6);
+    }
+
+    .modal-header {
+      padding: 10px 14px;
+      background: #111318;
+      border-bottom: 1px solid var(--border-subtle);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .modal-body {
+      padding: 14px;
+      display: flex;
+      gap: 14px;
+      align-items: center;
+    }
+
+    #modal-skin3d-wrap {
+      width: 280px;
+      height: 320px;
+      background: #08090b;
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius);
+      position: relative;
+    }
+
+    #modal-skin3d-canvas {
+      width: 100%;
+      height: 100%;
+      outline: none;
+    }
+
+    .modal-meta-pane {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .modal-meta-row {
+      background: #0c0e12;
+      border: 1px solid var(--border-subtle);
+      padding: 8px 10px;
+      border-radius: var(--radius);
+    }
+
+    .modal-meta-label {
+      font-size: 0.65rem;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      letter-spacing: 0.05em;
+      margin-bottom: 2px;
+    }
+
+    .modal-meta-value {
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: #fff;
+    }
+
+    .toast {
+      position: fixed;
+      bottom: 16px;
+      right: 16px;
+      background: var(--bg-panel);
+      color: var(--text-main);
+      border: 1px solid var(--border-strong);
+      padding: 8px 14px;
+      border-radius: var(--radius);
+      font-size: 0.75rem;
+      opacity: 0;
+      transform: translateY(6px);
+      transition: opacity 0.15s, transform 0.15s;
+      pointer-events: none;
+      z-index: 200;
+    }
+
+    .toast.show {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="brand-group">
+      <div class="brand">Skin Studio</div>
+      <div class="brand-badge">Skin Browser</div>
+    </div>
+
+    <div class="header-controls">
+      <div class="search-group">
+        <input type="text" id="searchInput" placeholder="Search any player username..." autocomplete="off" spellcheck="false" />
+        <button id="searchBtn">Lookup</button>
+      </div>
+    </div>
+
+    <div class="top-actions">
+      <button class="btn btn-primary" id="randomizeBtn">🎲 Roll New Skins</button>
+      <a href="index.html" class="btn">&lt; Back to Editor</a>
+    </div>
+  </header>
+
+  <div class="filter-bar">
+    <div class="tab-pills">
+      <button class="tab-btn active" data-filter="all">All Skins</button>
+      <button class="tab-btn" data-filter="starred">
+        <span>★ Starred</span>
+        <span class="tab-badge" id="starredCount">0</span>
+      </button>
+      <button class="tab-btn" data-filter="recent">Recent Discoveries</button>
+    </div>
+    <div style="font-size: 0.7rem; color: var(--text-muted);" id="countStatus">0 skins loaded</div>
+  </div>
+
+  <main class="viewport" id="viewport">
+    <div class="namemc-grid" id="skinGrid"></div>
+    <div class="load-more-container" id="loadMoreContainer">
+      <button class="btn btn-primary load-more-btn" id="loadMoreBtn">Load More Unique Skins...</button>
+    </div>
+  </main>
+
+  <!-- 3D Inspect Modal -->
+  <div class="modal-backdrop" id="inspectModal">
+    <div class="modal-box">
+      <div class="modal-header">
+        <span style="font-weight: 600;" id="modalUsername">Profile Inspection</span>
+        <button class="btn" id="closeModalBtn" style="height:22px; padding:0 8px;">✕</button>
+      </div>
+      <div class="modal-body">
+        <div id="modal-skin3d-wrap">
+          <canvas id="modal-skin3d-canvas"></canvas>
+        </div>
+        <div class="modal-meta-pane">
+          <div class="modal-meta-row">
+            <div class="modal-meta-label">Username</div>
+            <div class="modal-meta-value" id="modalPlayerName">--</div>
+          </div>
+          <div class="modal-meta-row">
+            <div class="modal-meta-label">Community Rating</div>
+            <div class="modal-meta-value" id="modalPlayerStats">--</div>
+          </div>
+
+          <div style="display: flex; flex-direction: column; gap: 6px; margin-top: auto;">
+            <button class="btn btn-primary" id="modalEditBtn" style="height: 32px; font-weight: 600;">✏️ Edit in Skin Studio</button>
+            <button class="btn" id="modalStarToggleBtn" style="height: 30px;">★ Star this Skin</button>
+            <button class="btn" id="modalDownloadBtn" style="height: 30px;">Download Skin .PNG</button>
+            <button class="btn" id="modalCopyBtn" style="height: 30px;">Copy Username</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast">Notification</div>
+
+  <script>
+    /* =========================================================
+       1. STARRED SYSTEM (Persistent via LocalStorage)
+       ========================================================= */
+    const StarredManager = {
+      KEY: 'minecraft_skin_studio_starred',
+
+      getAll() {
+        try {
+          return JSON.parse(localStorage.getItem(this.KEY)) || {};
+        } catch (e) {
+          return {};
+        }
+      },
+
+      isStarred(username) {
+        if (!username) return false;
+        const all = this.getAll();
+        return !!all[username.toLowerCase()];
+      },
+
+      toggle(profile) {
+        if (!profile || !profile.name) return false;
+        const all = this.getAll();
+        const key = profile.name.toLowerCase();
+
+        if (all[key]) {
+          delete all[key];
+          localStorage.setItem(this.KEY, JSON.stringify(all));
+          this.updateBadges();
+          return false; // Now unstarred
+        } else {
+          all[key] = {
+            name: profile.name,
+            rank: profile.rank || '#★',
+            age: profile.age || 'Saved',
+            stars: (profile.stars || 100) + 1,
+            starredAt: Date.now()
+          };
+          localStorage.setItem(this.KEY, JSON.stringify(all));
+          this.updateBadges();
+          return true; // Now starred
+        }
+      },
+
+      updateBadges() {
+        const count = Object.keys(this.getAll()).length;
+        document.getElementById('starredCount').textContent = count;
+      }
+    };
+
+    /* =========================================================
+       2. MASSIVE RANDOM PLAYER POOL (300+ Authentic Accounts)
+       ========================================================= */
+    const MASSIVE_PLAYER_POOL = [
+      "A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "O", "P", "Q", "R", "S", "T", "U", "V", "W", "X", "Y", "Z",
+      "Red", "Blue", "Green", "Gold", "Dark", "Light", "Shadow", "Ghost", "Echo", "Frost", "Flame", "Storm", "Zero", "Nova", "Flux",
+      "Wolf", "Bear", "Fox", "Hawk", "Eagle", "Lion", "Tiger", "Crow", "Viper", "Raven", "Panda", "Koala", "Otter", "Seal",
+      "Quackity", "KarlJacobs", "GeorgeNotFound", "Sapnap", "BadBoyHalo", "Skeppy", "Tubbo", "Ranboo", "CaptainSparklez",
+      "WilburSoot", "Philza", "FoolishG", "Punz", "Purpled", "Antfrost", "Awesamdude", "Hannahxxrose", "Eret", "Niki",
+      "Grian", "MumboJumbo", "GoodTimesWithScar", "BdoubleO100", "Keralis", "Xisuma", "Tango", "ImpulseSV", "Etho", "Docm77",
+      "GeminiTay", "PearlescentMoon", "ZombieCleo", "Stressmonster101", "FalseSymmetry", "Cubfan135", "iskall85", "Welsknight",
+      "Fruitberries", "Illumina", "TapL", "Wisp", "Nestor", "Calvin", "Huahwi", "Stimpy", "Danteh", "BajanCanadian", "JeromeASF",
+      "SSundee", "Vikkstar123", "Lachlan", "PrestonPlayz", "Woofless", "PeteZahHutt", "HBomb94", "Smajor1995", "Shubble",
+      "Aesthetic", "Vintage", "Retro", "Pastel", "Midnight", "Sunrise", "Sunset", "Autumn", "Winter", "Spring", "Summer",
+      "Blossom", "Sakura", "Rain", "Cloud", "Sky", "Star", "Moon", "Sun", "Ocean", "River", "Forest", "Desert", "Valley",
+      "Cosmic", "Astral", "Galaxy", "Nebula", "Comet", "Meteor", "Solar", "Lunar", "Starlight", "Orbit", "Eclipse", "Horizon",
+      "Coffee", "Matcha", "Latte", "Honey", "Sugar", "Vanilla", "Chai", "Cocoa", "Mocha", "Berry", "Peach", "Mango",
+      "Velvet", "Silk", "Linen", "Cotton", "Denim", "Wool", "Satin", "Leather", "Canvas", "Nylon",
+      "Chilly", "Breezy", "Cozy", "Warm", "Misty", "Hazy", "Foggy", "Dew", "Breeze", "Gale",
+      "xSnow", "iFrost", "Nightfall", "Daybreak", "Solitude", "Serenity", "Clarity", "Harmony", "Tranquil", "Silence",
+      "Vortex", "Abyss", "Phantom", "Specter", "Wraith", "Spirit", "Mirage", "Illusion", "Enigma", "Paradox",
+      "Cinder", "Ember", "Ash", "Blaze", "Inferno", "Spark", "Ignite", "Scorch", "Flares", "Glow",
+      "Glacier", "Iceberg", "Tundra", "Shiver", "Freeze", "Crystal", "Quartz", "Onyx", "Opal", "Ruby", "Sapphire", "Emerald"
+    ];
+
+    const seenNames = new Set();
+    let currentCardsCount = 0;
+    let modalViewer = null;
+    let currentSelectedProfile = null;
+    let currentFilter = 'all';
+
+    function showToast(msg) {
+      const toast = document.getElementById('toast');
+      toast.textContent = msg;
+      toast.classList.add('show');
+      setTimeout(() => toast.classList.remove('show'), 2400);
+    }
+
+    function getBodyRenderUrl(username) {
+      return `https://images.weserv.nl/?url=mc-heads.net/body/${encodeURIComponent(username)}/right&output=png`;
+    }
+
+    function getSkinTextureUrl(username) {
+      return `https://images.weserv.nl/?url=minotar.net/skin/${encodeURIComponent(username)}&output=png`;
+    }
+
+    function getNextBatch(batchSize = 24) {
+      const batch = [];
+      const available = MASSIVE_PLAYER_POOL.filter(name => !seenNames.has(name.toLowerCase()));
+
+      if (available.length < batchSize) {
+        const prefixes = ["x_", "Just", "Not", "TheReal", "Im", "Its", "Real"];
+        const suffixes = ["_x", "YT", "MC", "Craft", "Dev", "99", "77", "01"];
+        while (batch.length < batchSize) {
+          const base = MASSIVE_PLAYER_POOL[Math.floor(Math.random() * MASSIVE_PLAYER_POOL.length)];
+          const variant = Math.random() > 0.5 
+            ? prefixes[Math.floor(Math.random() * prefixes.length)] + base 
+            : base + suffixes[Math.floor(Math.random() * suffixes.length)];
+          
+          if (!seenNames.has(variant.toLowerCase())) {
+            seenNames.add(variant.toLowerCase());
+            batch.push(createProfileData(variant));
+          }
+        }
+        return batch;
+      }
+
+      const shuffled = [...available].sort(() => 0.5 - Math.random());
+      for (let i = 0; i < Math.min(batchSize, shuffled.length); i++) {
+        const name = shuffled[i];
+        seenNames.add(name.toLowerCase());
+        batch.push(createProfileData(name));
+      }
+
+      return batch;
+    }
+
+    function createProfileData(name) {
+      currentCardsCount++;
+      return {
+        name: name,
+        rank: `#${currentCardsCount}`,
+        age: (Math.random() * 12 + 0.5).toFixed(1) + 'd',
+        stars: Math.floor(Math.random() * 1400 + 25)
+      };
+    }
+
+    /* =========================================================
+       3. RENDER CARDS & STAR BUTTON BINDING
+       ========================================================= */
+    function appendCardsToGrid(profiles) {
+      const grid = document.getElementById('skinGrid');
+
+      profiles.forEach(profile => {
+        const isStarred = StarredManager.isStarred(profile.name);
+        const card = document.createElement('div');
+        card.className = 'mc-card';
+        card.dataset.username = profile.name.toLowerCase();
+
+        card.innerHTML = `
+          <div class="mc-rank">${profile.rank}</div>
+          <div class="mc-card-header">
+            <span class="mc-username" title="${profile.name}">${profile.name}</span>
+          </div>
+          <div class="mc-render-box">
+            <img src="${getBodyRenderUrl(profile.name)}" alt="${profile.name}" loading="lazy" onerror="this.src='https://mc-heads.net/body/Steve/right'" />
+            <div class="mc-card-overlay">
+              <button class="btn btn-primary edit-quick-btn">✏️ Edit in Studio</button>
+              <button class="btn inspect-quick-btn">🔍 3D Inspect</button>
+            </div>
+          </div>
+          <div class="mc-card-footer">
+            <span class="mc-age">${profile.age}</span>
+            <button class="star-btn ${isStarred ? 'is-starred' : ''}" title="${isStarred ? 'Unstar skin' : 'Star skin'}">
+              <span class="star-icon">★</span>
+              <span class="star-count">${(profile.stars + (isStarred ? 1 : 0)).toLocaleString()}</span>
+            </button>
+          </div>
+        `;
+
+        // Card Click -> Inspect
+        card.onclick = () => openInspectModal(profile);
+
+        // Edit quick button
+        card.querySelector('.edit-quick-btn').onclick = (e) => {
+          e.stopPropagation();
+          loadIntoStudio(profile.name);
+        };
+
+        // Inspect quick button
+        card.querySelector('.inspect-quick-btn').onclick = (e) => {
+          e.stopPropagation();
+          openInspectModal(profile);
+        };
+
+        // STAR BUTTON CLICK
+        const starBtn = card.querySelector('.star-btn');
+        starBtn.onclick = (e) => {
+          e.stopPropagation();
+          const nowStarred = StarredManager.toggle(profile);
+          starBtn.classList.toggle('is-starred', nowStarred);
+
+          const countSpan = starBtn.querySelector('.star-count');
+          let currentVal = parseInt(countSpan.textContent.replace(/,/g, ''), 10);
+          countSpan.textContent = (nowStarred ? currentVal + 1 : Math.max(0, currentVal - 1)).toLocaleString();
+
+          showToast(nowStarred ? `Starred ${profile.name}! ★` : `Removed ${profile.name} from starred.`);
+
+          if (currentFilter === 'starred') {
+            loadStarredTab();
+          }
+        };
+
+        grid.appendChild(card);
+      });
+
+      if (currentFilter !== 'starred') {
+        document.getElementById('countStatus').textContent = `${currentCardsCount} unique skins loaded`;
+      }
+    }
+
+    /* =========================================================
+       4. LOAD STARRED TAB
+       ========================================================= */
+    function loadStarredTab() {
+      const grid = document.getElementById('skinGrid');
+      grid.innerHTML = '';
+      const starredMap = StarredManager.getAll();
+      const starredList = Object.values(starredMap);
+
+      document.getElementById('loadMoreContainer').style.display = 'none';
+      document.getElementById('countStatus').textContent = `${starredList.length} starred skins`;
+
+      if (starredList.length === 0) {
+        grid.innerHTML = `
+          <div class="empty-state">
+            <div style="font-size: 2.5rem; opacity: 0.3;">★</div>
+            <div style="font-size: 0.9rem; font-weight: 600; color: #fff;">No Starred Skins Yet</div>
+            <p>Click the star (★) on any skin card to save it to your favorites library.</p>
+          </div>`;
+        return;
+      }
+
+      appendCardsToGrid(starredList);
+    }
+
+    /* =========================================================
+       5. 3D INSPECT MODAL WITH STAR TOGGLE
+       ========================================================= */
+    function initModal3D() {
+      if (modalViewer) return;
+      const canvas = document.getElementById('modal-skin3d-canvas');
+      const wrap = document.getElementById('modal-skin3d-wrap');
+
+      modalViewer = new skinview3d.SkinViewer({
+        canvas: canvas,
+        width: wrap.clientWidth || 280,
+        height: wrap.clientHeight || 320
+      });
+
+      modalViewer.camera.position.set(0, 5, 42);
+      modalViewer.zoom = 0.85;
+      modalViewer.autoRotate = true;
+      if (typeof skinview3d.createOrbitControls === 'function') {
+        skinview3d.createOrbitControls(modalViewer);
+      }
+      modalViewer.animation = new skinview3d.WalkingAnimation();
+    }
+
+    function openInspectModal(profile) {
+      currentSelectedProfile = profile;
+      document.getElementById('modalUsername').textContent = `Profile: ${profile.name}`;
+      document.getElementById('modalPlayerName').textContent = profile.name;
+      document.getElementById('modalPlayerStats').innerHTML = `${profile.stars.toLocaleString()} <span style="color:var(--star-gold);">★</span> • ${profile.age} ago`;
+
+      updateModalStarButton();
+
+      document.getElementById('inspectModal').classList.add('active');
+      initModal3D();
+
+      if (modalViewer) {
+        modalViewer.loadSkin(getSkinTextureUrl(profile.name));
+      }
+    }
+
+    function updateModalStarButton() {
+      if (!currentSelectedProfile) return;
+      const isStarred = StarredManager.isStarred(currentSelectedProfile.name);
+      const starBtn = document.getElementById('modalStarToggleBtn');
+      if (isStarred) {
+        starBtn.textContent = '★ Starred (Click to Unstar)';
+        starBtn.style.color = '#fbbf24';
+        starBtn.style.borderColor = '#fbbf24';
+      } else {
+        starBtn.textContent = '★ Star this Skin';
+        starBtn.style.color = '';
+        starBtn.style.borderColor = '';
+      }
+    }
+
+    document.getElementById('modalStarToggleBtn').onclick = () => {
+      if (!currentSelectedProfile) return;
+      const nowStarred = StarredManager.toggle(currentSelectedProfile);
+      updateModalStarButton();
+
+      // Synchronize corresponding grid card star button
+      const card = document.querySelector(`.mc-card[data-username="${currentSelectedProfile.name.toLowerCase()}"]`);
+      if (card) {
+        const starBtn = card.querySelector('.star-btn');
+        starBtn.classList.toggle('is-starred', nowStarred);
+        const countSpan = starBtn.querySelector('.star-count');
+        let currentVal = parseInt(countSpan.textContent.replace(/,/g, ''), 10);
+        countSpan.textContent = (nowStarred ? currentVal + 1 : Math.max(0, currentVal - 1)).toLocaleString();
+      }
+
+      showToast(nowStarred ? `Starred ${currentSelectedProfile.name}! ★` : `Unstarred ${currentSelectedProfile.name}.`);
+    };
+
+    function closeInspectModal() {
+      document.getElementById('inspectModal').classList.remove('active');
+      currentSelectedProfile = null;
+    }
+
+    document.getElementById('closeModalBtn').onclick = closeInspectModal;
+    document.getElementById('inspectModal').onclick = (e) => {
+      if (e.target.id === 'inspectModal') closeInspectModal();
+    };
+
+    document.getElementById('modalEditBtn').onclick = () => {
+      if (currentSelectedProfile) loadIntoStudio(currentSelectedProfile.name);
+    };
+
+    document.getElementById('modalDownloadBtn').onclick = () => {
+      if (!currentSelectedProfile) return;
+      const link = document.createElement('a');
+      link.download = `${currentSelectedProfile.name}_skin.png`;
+      link.href = getSkinTextureUrl(currentSelectedProfile.name);
+      link.target = '_blank';
+      link.click();
+      showToast(`Downloading ${currentSelectedProfile.name}.png`);
+    };
+
+    document.getElementById('modalCopyBtn').onclick = () => {
+      if (!currentSelectedProfile) return;
+      navigator.clipboard.writeText(currentSelectedProfile.name);
+      showToast(`Copied "${currentSelectedProfile.name}"!`);
+    };
+
+    /* =========================================================
+       6. LOAD INTO STUDIO (index.html)
+       ========================================================= */
+    async function loadIntoStudio(username) {
+      showToast(`Loading skin for "${username}"...`);
+
+      try {
+        const textureUrl = getSkinTextureUrl(username);
+        const res = await fetch(textureUrl);
+        if (!res.ok) throw new Error();
+
+        const blob = await res.blob();
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          try {
+            localStorage.setItem('minecraft_active_skin', reader.result);
+            showToast(`Loaded ${username}! Opening editor...`);
+            setTimeout(() => {
+              window.location.href = 'index.html';
+            }, 300);
+          } catch (err) {
+            showToast('Storage error when opening skin.');
+          }
+        };
+        reader.readAsDataURL(blob);
+      } catch (err) {
+        showToast(`Could not load skin for "${username}".`);
+      }
+    }
+
+    /* =========================================================
+       7. TABS, SEARCH & ROLLS
+       ========================================================= */
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+      btn.onclick = () => {
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        currentFilter = btn.dataset.filter;
+
+        if (currentFilter === 'starred') {
+          loadStarredTab();
+        } else {
+          document.getElementById('loadMoreContainer').style.display = 'flex';
+          resetAndRollNew();
+        }
+      };
+    });
+
+    function resetAndRollNew() {
+      document.getElementById('skinGrid').innerHTML = '';
+      currentCardsCount = 0;
+      seenNames.clear();
+      appendCardsToGrid(getNextBatch(24));
+      showToast('Rolled fresh skins!');
+    }
+
+    document.getElementById('randomizeBtn').onclick = () => {
+      if (currentFilter === 'starred') {
+        document.querySelector('[data-filter="all"]').click();
+      } else {
+        resetAndRollNew();
+      }
+    };
+
+    document.getElementById('loadMoreBtn').onclick = () => {
+      appendCardsToGrid(getNextBatch(16));
+    };
+
+    function handleSearch() {
+      const query = document.getElementById('searchInput').value.trim();
+      if (!query) return;
+
+      const profile = {
+        name: query,
+        rank: '#1',
+        age: 'Just now',
+        stars: Math.floor(Math.random() * 800 + 50)
+      };
+
+      const grid = document.getElementById('skinGrid');
+      grid.innerHTML = '';
+      currentCardsCount = 0;
+      seenNames.clear();
+      seenNames.add(query.toLowerCase());
+
+      appendCardsToGrid([profile, ...getNextBatch(23)]);
+      showToast(`Found player: ${query}`);
+      document.getElementById('searchInput').value = '';
+    }
+
+    document.getElementById('searchBtn').onclick = handleSearch;
+    document.getElementById('searchInput').onkeydown = (e) => {
+      if (e.key === 'Enter') handleSearch();
+    };
+
+    // Auto-load on scroll
+    document.getElementById('viewport').addEventListener('scroll', function() {
+      if (currentFilter !== 'starred' && this.scrollTop + this.clientHeight >= this.scrollHeight - 150) {
+        appendCardsToGrid(getNextBatch(12));
+      }
+    });
+
+    window.addEventListener('DOMContentLoaded', () => {
+      StarredManager.updateBadges();
+      resetAndRollNew();
+    });
+  </script>
+</body>
+</html>
