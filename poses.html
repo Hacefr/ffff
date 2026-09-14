@@ -5,6 +5,10 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Poses Studio</title>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/0.156.0/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.156.0/examples/js/loaders/GLTFLoader.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.156.0/examples/js/loaders/OBJLoader.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.156.0/examples/js/loaders/MTLLoader.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/skinview3d@3.2.0/bundles/skinview3d.bundle.js"></script>
   <style>
     :root {
@@ -456,6 +460,15 @@
         </div>
         <button class="btn-limb" data-limb="root" style="width:100%; margin-top:2px;">Character Root</button>
 
+        <!-- Torso Lock Toggle -->
+        <div class="field-row" style="margin-top: 4px; padding: 4px 2px; border-top: 1px solid var(--border);">
+          <span class="field-label" style="font-weight: 500; color: #fff;">Torso Lock</span>
+          <label style="display:flex; align-items:center; gap:6px; cursor:pointer;">
+            <input type="checkbox" id="torsoLockCheckbox" style="cursor:pointer;" checked />
+            <span class="field-label" title="When enabled, moving the Torso translates the whole character">Move Whole Skin</span>
+          </label>
+        </div>
+
         <div style="display:flex; gap:4px; margin-top:4px;">
           <button class="btn" id="zeroSelectedBtn" style="flex:1;">Zero</button>
           <button class="btn" id="tposeBtn" style="flex:1;">T-Pose</button>
@@ -512,14 +525,14 @@
       </div>
 
       <div id="itemPanelContent" class="panel-section" style="display:none;">
-        <div class="window-header">3D Object Import</div>
+        <div class="window-header">3D Model & Prop Import</div>
         
         <div style="display:flex; flex-direction:column; gap:4px;">
-          <input type="file" id="itemObjInput" accept=".obj" style="display:none;" />
-          <button class="btn btn-primary" id="uploadItemObjBtn" style="width:100%;">Import .OBJ Model</button>
+          <input type="file" id="itemUniversalInput" accept=".obj,.glb,.gltf,.zip" style="display:none;" />
+          <button class="btn btn-primary" id="uploadUniversalBtn" style="width:100%;">Import Model (.glb, .gltf, .obj, .zip)</button>
           
-          <input type="file" id="itemTexInput" accept="image/png,image/jpeg" style="display:none;" />
-          <button class="btn" id="uploadItemTexBtn" style="width:100%;">Apply Texture (.png)</button>
+          <input type="file" id="itemTexInput" accept="image/png,image/jpeg" multiple style="display:none;" />
+          <button class="btn" id="uploadItemTexBtn" style="width:100%;">Apply Textures (.png, .jpg)</button>
         </div>
 
         <div style="border-top:1px solid var(--border); padding-top:6px; margin-top:4px;">
@@ -538,17 +551,22 @@
             </select>
           </div>
 
+          <div id="textureSelectorRow" style="display:none;">
+            <span class="field-label">Model Texture / Variant</span>
+            <select class="select-styled" id="itemTextureSelect" style="margin-top:2px;"></select>
+          </div>
+
           <div>
             <div class="field-row">
               <span class="field-label">Scale</span>
-              <span class="field-label" id="itemScaleValue" style="color:#fff; font-family:monospace;">1.0</span>
+              <span class="field-label" id="itemScaleValue" style="color:#fff; font-family:monospace;">1.00</span>
             </div>
             <input type="range" id="itemScaleSlider" class="range-styled" min="0.1" max="4" step="0.05" value="1.0">
           </div>
 
           <div class="field-row">
             <span class="field-label">Material Color</span>
-            <input type="color" id="itemTintPicker" value="#d1d5db" style="width:26px; height:22px; border:none; background:transparent; cursor:pointer;">
+            <input type="color" id="itemTintPicker" value="#ffffff" style="width:26px; height:22px; border:none; background:transparent; cursor:pointer;">
           </div>
 
           <div style="display:flex; gap:4px; margin-top:4px;">
@@ -580,8 +598,9 @@
 
     <div class="controls-guide">
       <div>WASD: Pan Camera | Q/E: Vertical | Right Click: Orbit</div>
-      <div>Left Click: Select & Move | R: Mode | Y: Space</div>
+      <div>Left Click: Transform | R: Mode (Rotate/Move/Scale) | Y: Space</div>
       <div>Ctrl+Z: Undo | Ctrl+Y: Redo | Esc: Deselect</div>
+      <div>Drop .zip, .glb, or .obj anywhere into viewport</div>
       <div id="camCoordsText" style="color:var(--text-muted); margin-top:2px;">Cam: 0.0, 14.0, 46.0</div>
     </div>
 
@@ -630,6 +649,8 @@
     let currentSpace = 'local';
     let lastLoadedSkin = null;
 
+    let torsoLockEnabled = true;
+
     let camRadius = 48;
     let camPhi = 1.28;
     let camTheta = 0;
@@ -650,14 +671,97 @@
     };
 
     const limbOffsets = {
-      head:     { basePos: new THREE.Vector3(), baseRot: new THREE.Euler(0, 0, 0, 'YXZ') },
-      body:     { basePos: new THREE.Vector3(), baseRot: new THREE.Euler(0, 0, 0, 'YXZ') },
-      rightArm: { basePos: new THREE.Vector3(), baseRot: new THREE.Euler(0, 0, 0, 'YXZ') },
-      leftArm:  { basePos: new THREE.Vector3(), baseRot: new THREE.Euler(0, 0, 0, 'YXZ') },
-      rightLeg: { basePos: new THREE.Vector3(), baseRot: new THREE.Euler(0, 0, 0, 'YXZ') },
-      leftLeg:  { basePos: new THREE.Vector3(), baseRot: new THREE.Euler(0, 0, 0, 'YXZ') },
-      root:     { basePos: new THREE.Vector3(), baseRot: new THREE.Euler(0, 0, 0, 'YXZ') }
+      head:     { basePos: new THREE.Vector3(), baseRot: new THREE.Euler(0, 0, 0, 'YXZ'), baseScale: new THREE.Vector3(1, 1, 1) },
+      body:     { basePos: new THREE.Vector3(), baseRot: new THREE.Euler(0, 0, 0, 'YXZ'), baseScale: new THREE.Vector3(1, 1, 1) },
+      rightArm: { basePos: new THREE.Vector3(), baseRot: new THREE.Euler(0, 0, 0, 'YXZ'), baseScale: new THREE.Vector3(1, 1, 1) },
+      leftArm:  { basePos: new THREE.Vector3(), baseRot: new THREE.Euler(0, 0, 0, 'YXZ'), baseScale: new THREE.Vector3(1, 1, 1) },
+      rightLeg: { basePos: new THREE.Vector3(), baseRot: new THREE.Euler(0, 0, 0, 'YXZ'), baseScale: new THREE.Vector3(1, 1, 1) },
+      leftLeg:  { basePos: new THREE.Vector3(), baseRot: new THREE.Euler(0, 0, 0, 'YXZ'), baseScale: new THREE.Vector3(1, 1, 1) },
+      root:     { basePos: new THREE.Vector3(), baseRot: new THREE.Euler(0, 0, 0, 'YXZ'), baseScale: new THREE.Vector3(1, 1, 1) }
     };
+
+    /* Rock-Solid Local Dimensions & Joint-Relative Center Offsets */
+    const limbDimensions = {
+      head:     { size: new THREE.Vector3(8.6, 8.6, 8.6),   localCenter: new THREE.Vector3(0, 4.0, 0) },
+      body:     { size: new THREE.Vector3(8.6, 12.6, 4.6),  localCenter: new THREE.Vector3(0, 0, 0) },
+      rightArm: { size: new THREE.Vector3(4.6, 12.6, 4.6),  localCenter: new THREE.Vector3(-1.0, -4.0, 0) },
+      leftArm:  { size: new THREE.Vector3(4.6, 12.6, 4.6),  localCenter: new THREE.Vector3(1.0, -4.0, 0) },
+      rightLeg: { size: new THREE.Vector3(4.6, 12.6, 4.6),  localCenter: new THREE.Vector3(0, -6.0, 0) },
+      leftLeg:  { size: new THREE.Vector3(4.6, 12.6, 4.6),  localCenter: new THREE.Vector3(0, -6.0, 0) },
+      root:     { size: new THREE.Vector3(16.6, 32.6, 8.6), localCenter: new THREE.Vector3(0, 0, 0) }
+    };
+
+    /* Measure vertex bounds in rest pose (excluding hidden accessory/ear meshes) */
+    function computeLimbDimensions() {
+      if (!poseViewer || !poseViewer.playerObject || !poseViewer.playerObject.skin) return;
+      const skin = poseViewer.playerObject.skin;
+      const limbs = ['body', 'rightArm', 'leftArm', 'rightLeg', 'leftLeg'];
+
+      // Head is strictly locked to canonical Minecraft 8.6x8.6x8.6 to prevent hidden ear meshes from interfering
+      limbDimensions.head = {
+        size: new THREE.Vector3(8.6, 8.6, 8.6),
+        localCenter: new THREE.Vector3(0, 4.0, 0)
+      };
+
+      const savedRots = {};
+      const savedScales = {};
+
+      limbs.forEach(k => {
+        if (skin[k]) {
+          savedRots[k] = skin[k].quaternion.clone();
+          savedScales[k] = skin[k].scale.clone();
+          skin[k].quaternion.set(0, 0, 0, 1);
+          skin[k].scale.set(1, 1, 1);
+        }
+      });
+
+      poseViewer.playerObject.updateMatrixWorld(true);
+
+      limbs.forEach(k => {
+        if (skin[k]) {
+          const detachedItems = [];
+          for (let i = skin[k].children.length - 1; i >= 0; i--) {
+            const child = skin[k].children[i];
+            if (child.userData && child.userData.isItemWrapper) {
+              detachedItems.push(child);
+              skin[k].remove(child);
+            }
+          }
+
+          const box = new THREE.Box3();
+          skin[k].traverse(child => {
+            if (child.isMesh && child.visible && child.geometry) {
+              box.expandByObject(child);
+            }
+          });
+
+          const worldPos = new THREE.Vector3();
+          skin[k].getWorldPosition(worldPos);
+
+          detachedItems.forEach(item => skin[k].add(item));
+
+          if (!box.isEmpty()) {
+            const size = new THREE.Vector3();
+            const center = new THREE.Vector3();
+            box.getSize(size);
+            box.getCenter(center);
+            center.sub(worldPos);
+            size.addScalar(0.3);
+
+            limbDimensions[k] = { size, localCenter: center };
+          }
+        }
+      });
+
+      limbs.forEach(k => {
+        if (skin[k]) {
+          skin[k].quaternion.copy(savedRots[k]);
+          skin[k].scale.copy(savedScales[k]);
+        }
+      });
+
+      poseViewer.playerObject.updateMatrixWorld(true);
+    }
 
     function showToast(msg) {
       const t = document.getElementById('toast');
@@ -676,69 +780,41 @@
     }
 
     /* =========================================================
-       HIGH-RELIABILITY SCHOOL-BYPASS SKIN SEARCH ENGINE
+       SKIN SEARCH ENGINE
        ========================================================= */
     async function searchAndLoadSkin(username) {
       if (!username || !username.trim()) return;
       username = username.trim();
       showToast(`Loading skin for "${username}"...`);
 
-      // 1. ROUTE 1: Weserv Image CDN + Minotar (Bypasses School Filters)
       try {
         const res = await fetch(`https://images.weserv.nl/?url=minotar.net/skin/${encodeURIComponent(username)}&output=png`);
         if (res.ok) {
           const blob = await res.blob();
           if (blob.size > 300) {
             const dataUrl = await blobToDataUrl(blob);
-            await loadSkinSafely(dataUrl);
-            try { localStorage.setItem('minecraft_active_skin', dataUrl); } catch(e) {}
-            showToast(`Loaded: ${username}`);
-            return;
+            const ok = await loadSkinSafely(dataUrl);
+            if (ok) {
+              try { localStorage.setItem('minecraft_active_skin', dataUrl); } catch(e) {}
+              showToast(`Loaded: ${username}`);
+              return;
+            }
           }
         }
       } catch (e) {}
 
-      // 2. ROUTE 2: Weserv Image CDN + MC-Heads
       try {
         const res = await fetch(`https://images.weserv.nl/?url=mc-heads.net/skin/${encodeURIComponent(username)}&output=png`);
         if (res.ok) {
           const blob = await res.blob();
           if (blob.size > 300) {
             const dataUrl = await blobToDataUrl(blob);
-            await loadSkinSafely(dataUrl);
-            try { localStorage.setItem('minecraft_active_skin', dataUrl); } catch(e) {}
-            showToast(`Loaded: ${username}`);
-            return;
-          }
-        }
-      } catch (e) {}
-
-      // 3. ROUTE 3: Direct Minotar
-      try {
-        const res = await fetch(`https://minotar.net/skin/${encodeURIComponent(username)}`);
-        if (res.ok) {
-          const blob = await res.blob();
-          if (blob.size > 300) {
-            const dataUrl = await blobToDataUrl(blob);
-            await loadSkinSafely(dataUrl);
-            try { localStorage.setItem('minecraft_active_skin', dataUrl); } catch(e) {}
-            showToast(`Loaded: ${username}`);
-            return;
-          }
-        }
-      } catch (e) {}
-
-      // 4. ROUTE 4: Ashcon Mojang API
-      try {
-        const res = await fetch(`https://api.ashcon.app/mojang/v2/user/${encodeURIComponent(username)}`);
-        if (res.ok) {
-          const json = await res.json();
-          if (json.textures && json.textures.skin && json.textures.skin.data) {
-            const dataUrl = 'data:image/png;base64,' + json.textures.skin.data;
-            await loadSkinSafely(dataUrl);
-            try { localStorage.setItem('minecraft_active_skin', dataUrl); } catch(e) {}
-            showToast(`Loaded: ${json.username || username}`);
-            return;
+            const ok = await loadSkinSafely(dataUrl);
+            if (ok) {
+              try { localStorage.setItem('minecraft_active_skin', dataUrl); } catch(e) {}
+              showToast(`Loaded: ${username}`);
+              return;
+            }
           }
         }
       } catch (e) {}
@@ -752,27 +828,36 @@
     };
 
     /* =========================================================
-       UNDO / REDO HISTORY ENGINE (Ctrl+Z / Ctrl+Y)
+       UNDO / REDO HISTORY ENGINE
        ========================================================= */
     const historyStack = [];
     let historyIndex = -1;
 
     function recordHistory() {
-      const snapshot = {};
+      const snapshot = { limbs: {}, items: {} };
       Object.keys(limbOffsets).forEach(k => {
         const obj = getLimbObject(k);
         if (obj) {
-          snapshot[k] = {
+          snapshot.limbs[k] = {
             pos: [obj.position.x, obj.position.y, obj.position.z],
             rot: [obj.rotation.x, obj.rotation.y, obj.rotation.z],
-            quat: [obj.quaternion.x, obj.quaternion.y, obj.quaternion.z, obj.quaternion.w]
+            quat: [obj.quaternion.x, obj.quaternion.y, obj.quaternion.z, obj.quaternion.w],
+            scale: [obj.scale.x, obj.scale.y, obj.scale.z]
           };
         }
       });
 
+      sceneItems.forEach(it => {
+        snapshot.items[it.id] = {
+          pos: [it.group.position.x, it.group.position.y, it.group.position.z],
+          quat: [it.group.quaternion.x, it.group.quaternion.y, it.group.quaternion.z, it.group.quaternion.w],
+          scale: it.scale
+        };
+      });
+
       historyStack.splice(historyIndex + 1);
       historyStack.push(snapshot);
-      if (historyStack.length > 35) historyStack.shift();
+      if (historyStack.length > 40) historyStack.shift();
       historyIndex = historyStack.length - 1;
 
       updateHistoryButtons();
@@ -797,14 +882,32 @@
     function restoreHistory(idx) {
       if (idx < 0 || idx >= historyStack.length) return;
       const snapshot = historyStack[idx];
-      Object.keys(snapshot).forEach(k => {
-        const obj = getLimbObject(k);
-        if (obj) {
-          const item = snapshot[k];
-          obj.position.set(item.pos[0], item.pos[1], item.pos[2]);
-          obj.quaternion.set(item.quat[0], item.quat[1], item.quat[2], item.quat[3]);
-        }
-      });
+      if (snapshot.limbs) {
+        Object.keys(snapshot.limbs).forEach(k => {
+          const obj = getLimbObject(k);
+          if (obj) {
+            const item = snapshot.limbs[k];
+            obj.position.set(item.pos[0], item.pos[1], item.pos[2]);
+            obj.quaternion.set(item.quat[0], item.quat[1], item.quat[2], item.quat[3]);
+            if (item.scale) obj.scale.set(item.scale[0], item.scale[1], item.scale[2]);
+          }
+        });
+      }
+      if (snapshot.items) {
+        sceneItems.forEach(it => {
+          if (snapshot.items[it.id]) {
+            const snap = snapshot.items[it.id];
+            it.group.position.set(snap.pos[0], snap.pos[1], snap.pos[2]);
+            it.group.quaternion.set(snap.quat[0], snap.quat[1], snap.quat[2], snap.quat[3]);
+            it.scale = snap.scale;
+            it.group.scale.set(snap.scale, snap.scale, snap.scale);
+            if (it.id === activeItemId) {
+              document.getElementById('itemScaleSlider').value = it.scale;
+              document.getElementById('itemScaleValue').textContent = it.scale.toFixed(2);
+            }
+          }
+        });
+      }
       updateGizmoWorldPosition();
       updateHighlightBox();
       updateHistoryButtons();
@@ -819,75 +922,63 @@
     document.getElementById('redoBtn').onclick = redo;
 
     /* =========================================================
-       3D PROPS & OBJ IMPORTER
+       UNIVERSAL 3D OBJECT ENGINE
        ========================================================= */
     let sceneItems = [];
     let itemCounter = 1;
 
-    function parseWavefrontOBJ(text) {
-      const lines = text.split('\n');
-      const positions = [];
-      const uvs = [];
-      const normals = [];
+    function normalizeModelScale(threeObject, targetBoundingSize = 10) {
+      const box = new THREE.Box3().setFromObject(threeObject);
+      const size = new THREE.Vector3();
+      box.getSize(size);
+      const maxDim = Math.max(size.x, size.y, size.z) || 1;
+      const factor = targetBoundingSize / maxDim;
+      threeObject.scale.set(factor, factor, factor);
+    }
 
-      const finalPositions = [];
-      const finalUvs = [];
-      const finalNormals = [];
-
-      lines.forEach(line => {
-        line = line.trim();
-        if (!line || line.startsWith('#')) return;
-        const parts = line.split(/\s+/);
-        const type = parts[0];
-
-        if (type === 'v') {
-          positions.push(parseFloat(parts[1]), parseFloat(parts[2]), parseFloat(parts[3]));
-        } else if (type === 'vt') {
-          uvs.push(parseFloat(parts[1]), parseFloat(parts[2]));
-        } else if (type === 'vn') {
-          normals.push(parseFloat(parts[1]), parseFloat(parts[2]), parseFloat(parts[3]));
-        } else if (type === 'f') {
-          const faceVertices = parts.slice(1);
-          for (let i = 1; i < faceVertices.length - 1; i++) {
-            [faceVertices[0], faceVertices[i], faceVertices[i + 1]].forEach(vert => {
-              const [vIdx, vtIdx, vnIdx] = vert.split('/').map(n => parseInt(n) - 1);
-              if (!isNaN(vIdx)) finalPositions.push(positions[vIdx * 3], positions[vIdx * 3 + 1], positions[vIdx * 3 + 2]);
-              if (!isNaN(vtIdx) && uvs.length > 0) finalUvs.push(uvs[vtIdx * 2], uvs[vtIdx * 2 + 1]);
-              if (!isNaN(vnIdx) && normals.length > 0) finalNormals.push(normals[vnIdx * 3], normals[vnIdx * 3 + 1], normals[vnIdx * 3 + 2]);
-            });
+    function prepareModelMaterials(threeObject) {
+      threeObject.traverse(c => {
+        if (c.isMesh) {
+          c.castShadow = true;
+          c.receiveShadow = true;
+          if (c.material) {
+            c.material.roughness = 0.65;
+            c.material.metalness = 0.05;
+            if (c.material.map) {
+              c.material.map.magFilter = THREE.NearestFilter;
+              c.material.map.minFilter = THREE.NearestFilter;
+              c.material.map.needsUpdate = true;
+            }
           }
         }
       });
-
-      const geom = new THREE.BufferGeometry();
-      geom.setAttribute('position', new THREE.Float32BufferAttribute(finalPositions, 3));
-      if (finalUvs.length > 0) geom.setAttribute('uv', new THREE.Float32BufferAttribute(finalUvs, 2));
-      if (finalNormals.length > 0) geom.setAttribute('normal', new THREE.Float32BufferAttribute(finalNormals, 3));
-      else geom.computeVertexNormals();
-      return geom;
     }
 
-    function registerItemObject(name, threeMesh, defaultAttachment = 'rightArm') {
+    function registerItemObject(name, threeRootObject, defaultAttachment = 'rightArm', texturesDict = {}) {
       const id = 'item_' + Date.now();
       const wrapperGroup = new THREE.Group();
       wrapperGroup.name = id;
       wrapperGroup.userData = { isItemWrapper: true, itemId: id };
 
-      wrapperGroup.add(threeMesh);
+      prepareModelMaterials(threeRootObject);
+      normalizeModelScale(threeRootObject, 10);
+      wrapperGroup.add(threeRootObject);
 
       const itemRecord = {
         id: id,
         name: name + ' ' + (itemCounter++),
         group: wrapperGroup,
-        mesh: threeMesh,
+        modelRoot: threeRootObject,
         attachment: defaultAttachment,
-        scale: 1.0
+        scale: 1.0,
+        textures: texturesDict
       };
 
       sceneItems.push(itemRecord);
       attachItemToTarget(itemRecord, defaultAttachment);
       updateItemsDropdown();
       selectItem(id);
+      recordHistory();
       return itemRecord;
     }
 
@@ -930,6 +1021,26 @@
       if (activeItemId) select.value = activeItemId;
     }
 
+    function updateTextureDropdown(item) {
+      const select = document.getElementById('itemTextureSelect');
+      const row = document.getElementById('textureSelectorRow');
+      const texKeys = Object.keys(item.textures || {});
+
+      if (texKeys.length <= 1) {
+        row.style.display = 'none';
+        return;
+      }
+
+      row.style.display = 'block';
+      select.innerHTML = '';
+      texKeys.forEach(k => {
+        const opt = document.createElement('option');
+        opt.value = k;
+        opt.textContent = k;
+        select.appendChild(opt);
+      });
+    }
+
     function selectItem(id) {
       const item = sceneItems.find(it => it.id === id);
       if (!item) return;
@@ -942,9 +1053,26 @@
       document.getElementById('itemScaleValue').textContent = item.scale.toFixed(2);
       document.getElementById('hudActiveTargetText').textContent = item.name;
 
+      updateTextureDropdown(item);
       rebuildGizmoMeshes();
       updateGizmoWorldPosition();
       updateHighlightBox();
+    }
+
+    function applyTextureToObject(item, textureInstance) {
+      if (!item || !item.modelRoot || !textureInstance) return;
+      textureInstance.magFilter = THREE.NearestFilter;
+      textureInstance.minFilter = THREE.NearestFilter;
+      textureInstance.colorSpace = THREE.SRGBColorSpace;
+      textureInstance.needsUpdate = true;
+
+      item.modelRoot.traverse(c => {
+        if (c.isMesh && c.material) {
+          c.material.map = textureInstance;
+          c.material.color.set('#ffffff');
+          c.material.needsUpdate = true;
+        }
+      });
     }
 
     function deleteActiveItem() {
@@ -953,72 +1081,176 @@
 
       const item = sceneItems[idx];
       if (item.group.parent) item.group.parent.remove(item.group);
+      
+      item.modelRoot.traverse(c => {
+        if (c.geometry) c.geometry.dispose();
+        if (c.material) {
+          if (c.material.map) c.material.map.dispose();
+          c.material.dispose();
+        }
+      });
+
       sceneItems.splice(idx, 1);
+      activeItemId = null;
 
       updateItemsDropdown();
       if (sceneItems.length > 0) selectItem(sceneItems[0].id);
       else selectLimb('head');
+      recordHistory();
       showToast('Object deleted');
     }
 
-    document.getElementById('uploadItemObjBtn').onclick = () => document.getElementById('itemObjInput').click();
-    document.getElementById('itemObjInput').onchange = (e) => {
-      const file = e.target.files[0];
-      if (!file) return;
-      const reader = new FileReader();
-      reader.onload = (ev) => {
-        try {
-          const geom = parseWavefrontOBJ(ev.target.result);
-          geom.computeBoundingBox();
-          const size = new THREE.Vector3();
-          geom.boundingBox.getSize(size);
-          const maxDim = Math.max(size.x, size.y, size.z) || 1;
-          const targetScale = 10 / maxDim;
+    /* =========================================================
+       AUTOMATIC ZIP, GLB, GLTF & OBJ PIPELINE
+       ========================================================= */
+    async function handleUniversalFileImport(file) {
+      const ext = file.name.split('.').pop().toLowerCase();
+      const baseName = file.name.replace(/\.[^/.]+$/, "");
+      showToast(`Importing ${file.name}...`);
 
-          const mat = new THREE.MeshStandardMaterial({ color: 0xd1d5db, roughness: 0.65, metalness: 0.05 });
-          const mesh = new THREE.Mesh(geom, mat);
-          mesh.castShadow = true;
-          mesh.receiveShadow = true;
-          mesh.scale.set(targetScale, targetScale, targetScale);
-
-          const name = file.name.replace(/\.[^/.]+$/, "");
-          registerItemObject(name, mesh, 'rightArm');
-          showToast(`Imported "${file.name}"`);
-        } catch (err) {
-          showToast('Failed to parse OBJ file');
+      try {
+        if (ext === 'zip') {
+          await processZipFile(file, baseName);
+        } else if (ext === 'glb') {
+          await processGlbFile(file, baseName);
+        } else if (ext === 'gltf') {
+          await processGltfFile(file, baseName);
+        } else if (ext === 'obj') {
+          await processObjFile(file, baseName);
+        } else {
+          showToast(`Unsupported format: .${ext}`);
         }
-      };
-      reader.readAsText(file);
+      } catch (err) {
+        console.error(err);
+        showToast(`Failed: ${err.message || 'Error reading model'}`);
+      }
+    }
+
+    async function processGlbFile(file, baseName) {
+      const arrayBuffer = await file.arrayBuffer();
+      const loader = new THREE.GLTFLoader();
+      loader.parse(arrayBuffer, '', (gltf) => {
+        registerItemObject(baseName, gltf.scene || gltf.scenes[0], 'rightArm');
+        showToast(`Loaded "${file.name}"`);
+      }, () => showToast('Error parsing GLB file'));
+    }
+
+    async function processGltfFile(file, baseName) {
+      const text = await file.text();
+      const loader = new THREE.GLTFLoader();
+      loader.parse(text, '', (gltf) => {
+        registerItemObject(baseName, gltf.scene || gltf.scenes[0], 'rightArm');
+        showToast(`Loaded "${file.name}"`);
+      }, () => showToast('Error parsing GLTF file'));
+    }
+
+    async function processObjFile(file, baseName) {
+      const text = await file.text();
+      const objLoader = new THREE.OBJLoader();
+      const objGroup = objLoader.parse(text);
+      registerItemObject(baseName, objGroup, 'rightArm');
+      showToast(`Loaded "${file.name}" (OBJ)`);
+    }
+
+    async function processZipFile(file, baseName) {
+      const zip = await JSZip.loadAsync(file);
+      const files = Object.keys(zip.files);
+
+      const glbPath = files.find(f => f.toLowerCase().endsWith('.glb') && !f.startsWith('__MACOSX'));
+      const gltfPath = files.find(f => f.toLowerCase().endsWith('.gltf') && !f.startsWith('__MACOSX'));
+      const objPath = files.find(f => f.toLowerCase().endsWith('.obj') && !f.startsWith('__MACOSX'));
+      const mtlPath = files.find(f => f.toLowerCase().endsWith('.mtl') && !f.startsWith('__MACOSX'));
+      const texFiles = files.filter(f => /\.(png|jpe?g)$/i.test(f) && !f.startsWith('__MACOSX'));
+
+      const loadedTextures = {};
+      for (const tPath of texFiles) {
+        const cleanName = tPath.split('/').pop();
+        const blob = await zip.files[tPath].async('blob');
+        const url = URL.createObjectURL(blob);
+        const tex = await new Promise(res => new THREE.TextureLoader().load(url, res));
+        loadedTextures[cleanName] = tex;
+      }
+
+      if (glbPath) {
+        const glbBuffer = await zip.files[glbPath].async('arraybuffer');
+        new THREE.GLTFLoader().parse(glbBuffer, '', (gltf) => {
+          registerItemObject(baseName, gltf.scene || gltf.scenes[0], 'rightArm', loadedTextures);
+          showToast(`Extracted & Loaded "${glbPath.split('/').pop()}" from ZIP`);
+        });
+        return;
+      }
+
+      if (objPath) {
+        const objText = await zip.files[objPath].async('string');
+        const objLoader = new THREE.OBJLoader();
+
+        if (mtlPath) {
+          const mtlText = await zip.files[mtlPath].async('string');
+          const mtlLoader = new THREE.MTLLoader();
+          mtlLoader.setResourcePath('');
+          const materialsCreator = mtlLoader.parse(mtlText);
+          materialsCreator.preload();
+
+          Object.keys(loadedTextures).forEach(texName => {
+            Object.values(materialsCreator.materials).forEach(mat => {
+              mat.map = loadedTextures[texName];
+            });
+          });
+          objLoader.setMaterials(materialsCreator);
+        }
+
+        const objGroup = objLoader.parse(objText);
+        const itemRecord = registerItemObject(baseName, objGroup, 'rightArm', loadedTextures);
+
+        const firstTexKey = Object.keys(loadedTextures)[0];
+        if (firstTexKey) {
+          applyTextureToObject(itemRecord, loadedTextures[firstTexKey]);
+        }
+
+        showToast(`Extracted & Textured ${baseName} from ZIP`);
+        return;
+      }
+
+      showToast('No .glb, .gltf, or .obj found inside the zip');
+    }
+
+    document.getElementById('uploadUniversalBtn').onclick = () => document.getElementById('itemUniversalInput').click();
+    document.getElementById('itemUniversalInput').onchange = (e) => {
+      const file = e.target.files[0];
+      if (file) handleUniversalFileImport(file);
     };
 
     document.getElementById('uploadItemTexBtn').onclick = () => {
       if (sceneItems.length === 0) {
-        showToast('Import an OBJ file first');
+        showToast('Import a model first');
         return;
       }
       document.getElementById('itemTexInput').click();
     };
 
-    document.getElementById('itemTexInput').onchange = (e) => {
-      const file = e.target.files[0];
-      if (!file) return;
-      const reader = new FileReader();
-      reader.onload = (ev) => {
-        const item = sceneItems.find(it => it.id === activeItemId);
-        if (!item) return;
+    document.getElementById('itemTexInput').onchange = async (e) => {
+      const files = Array.from(e.target.files);
+      const item = sceneItems.find(it => it.id === activeItemId);
+      if (!item || files.length === 0) return;
 
-        const loader = new THREE.TextureLoader();
-        loader.load(ev.target.result, (tex) => {
-          tex.magFilter = THREE.NearestFilter;
-          tex.minFilter = THREE.NearestFilter;
-          tex.colorSpace = THREE.SRGBColorSpace;
-          item.mesh.material.map = tex;
-          item.mesh.material.color.set('#ffffff');
-          item.mesh.material.needsUpdate = true;
-          showToast(`Applied texture to ${item.name}`);
-        });
-      };
-      reader.readAsDataURL(file);
+      const loader = new THREE.TextureLoader();
+      for (const file of files) {
+        const url = URL.createObjectURL(file);
+        const tex = await new Promise(res => loader.load(url, res));
+        item.textures[file.name] = tex;
+      }
+
+      updateTextureDropdown(item);
+      applyTextureToObject(item, item.textures[files[0].name]);
+      showToast(`Added ${files.length} texture(s) to ${item.name}`);
+    };
+
+    document.getElementById('itemTextureSelect').onchange = (e) => {
+      const item = sceneItems.find(it => it.id === activeItemId);
+      if (item && item.textures[e.target.value]) {
+        applyTextureToObject(item, item.textures[e.target.value]);
+        showToast(`Texture: ${e.target.value}`);
+      }
     };
 
     document.getElementById('itemsSelect').onchange = (e) => selectItem(e.target.value);
@@ -1037,8 +1269,10 @@
     };
     document.getElementById('itemTintPicker').oninput = (e) => {
       const item = sceneItems.find(it => it.id === activeItemId);
-      if (item && item.mesh.material) {
-        item.mesh.material.color.set(e.target.value);
+      if (item && item.modelRoot) {
+        item.modelRoot.traverse(c => {
+          if (c.isMesh && c.material) c.material.color.set(e.target.value);
+        });
       }
     };
     document.getElementById('resetItemTransformBtn').onclick = () => {
@@ -1046,6 +1280,51 @@
       if (item) attachItemToTarget(item, item.attachment);
     };
     document.getElementById('deleteItemBtn').onclick = deleteActiveItem;
+
+    /* Torso Lock Checkbox Event */
+    document.getElementById('torsoLockCheckbox').onchange = (e) => {
+      torsoLockEnabled = e.target.checked;
+      showToast(`Torso Lock: ${torsoLockEnabled ? 'Whole skin linked' : 'Torso independent'}`);
+      updateGizmoWorldPosition();
+    };
+
+    /* Viewport Drag & Drop */
+    const interactionLayer = document.getElementById('viewportInteractionLayer');
+    interactionLayer.addEventListener('dragover', (e) => { e.preventDefault(); e.dataTransfer.dropEffect = 'copy'; });
+    interactionLayer.addEventListener('drop', (e) => {
+      e.preventDefault();
+      if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+        const file = e.dataTransfer.files[0];
+        const ext = file.name.split('.').pop().toLowerCase();
+        if (['zip', 'glb', 'gltf', 'obj'].includes(ext)) {
+          switchTab('item');
+          handleUniversalFileImport(file);
+        } else if (['png', 'jpg', 'jpeg'].includes(ext)) {
+          const reader = new FileReader();
+          reader.onload = async (ev) => {
+            const dataUrl = ev.target.result;
+            const img = new Image();
+            img.onload = () => {
+              if (img.width === 64 && (img.height === 64 || img.height === 32)) {
+                loadSkinSafely(dataUrl);
+                showToast('Applied dropped skin');
+              } else if (sceneItems.length > 0) {
+                const item = sceneItems.find(it => it.id === activeItemId);
+                if (item) {
+                  const tex = new THREE.TextureLoader().load(dataUrl);
+                  item.textures[file.name] = tex;
+                  updateTextureDropdown(item);
+                  applyTextureToObject(item, tex);
+                  showToast(`Applied texture "${file.name}"`);
+                }
+              }
+            };
+            img.src = dataUrl;
+          };
+          reader.readAsDataURL(file);
+        }
+      }
+    });
 
     /* =========================================================
        LIGHTING ENGINE & SHADOWS
@@ -1137,7 +1416,11 @@
       document.getElementById('lightDistanceValue').textContent = light.distance;
       document.getElementById('lightDistanceRow').style.display = light.type === 'point' ? 'block' : 'none';
 
-      if (currentMode !== 'translate') toggleMode();
+      if (currentMode !== 'translate') {
+        currentMode = 'translate';
+        document.getElementById('hudModeText').textContent = 'Position';
+      }
+      rebuildGizmoMeshes();
       updateGizmoWorldPosition();
       updateHighlightBox();
     }
@@ -1230,8 +1513,14 @@
           c.castShadow = true;
           c.receiveShadow = true;
           if (c.material) {
+            c.material.side = THREE.DoubleSide;
             c.material.roughness = 0.65;
             c.material.metalness = 0.05;
+            if (c.material.map) {
+              c.material.map.magFilter = THREE.NearestFilter;
+              c.material.map.minFilter = THREE.NearestFilter;
+              c.material.map.needsUpdate = true;
+            }
             c.material.needsUpdate = true;
           }
         }
@@ -1239,18 +1528,16 @@
     }
 
     async function loadSkinSafely(skinSource) {
-      if (!poseViewer) return;
+      if (!poseViewer) return false;
       try {
         await poseViewer.loadSkin(skinSource);
         lastLoadedSkin = skinSource;
         updateCharacterMaterials();
+        computeLimbDimensions();
+        updateHighlightBox();
+        return true;
       } catch (e) {
-        try {
-          const steve = generateSteveDataUrl();
-          await poseViewer.loadSkin(steve);
-          lastLoadedSkin = steve;
-          updateCharacterMaterials();
-        } catch (err) {}
+        return false;
       }
     }
 
@@ -1271,7 +1558,7 @@
 
       if (!initialSkin || initialSkin.length < 100 || !initialSkin.startsWith('data:image')) {
         initialSkin = generateSteveDataUrl();
-        try { localStorage.setItem('minecraft_active_skin', initialSkin); } catch (e) {}
+        try { localStorage.setItem('minecraft_active_skin', initialSkin); } catch(e) {}
       }
 
       poseViewer = new skinview3d.SkinViewer({
@@ -1319,9 +1606,9 @@
 
       setup3DViewportInteraction(interactionLayer);
 
-      selectLimb('head');
       updateCharacterMaterials();
-
+      computeLimbDimensions();
+      selectLimb('head');
       recordHistory();
 
       function renderLoop() {
@@ -1428,9 +1715,11 @@
         if (skin[k]) {
           limbOffsets[k].basePos.copy(skin[k].position);
           limbOffsets[k].baseRot.copy(skin[k].rotation);
+          limbOffsets[k].baseScale.copy(skin[k].scale);
         }
       });
       limbOffsets.root.basePos.copy(poseViewer.playerObject.position);
+      limbOffsets.root.baseScale.copy(poseViewer.playerObject.scale);
     }
 
     let highlightWireframeBox = null;
@@ -1451,41 +1740,25 @@
         return;
       }
 
-      const obj = getActiveTransformObject();
-      if (!obj) {
+      const limbObj = getLimbObject(activeLimbKey);
+      const dim = limbDimensions[activeLimbKey];
+      if (!limbObj || !dim) {
         highlightWireframeBox.visible = false;
         return;
       }
       highlightWireframeBox.visible = true;
 
-      let size = new THREE.Vector3(8.4, 8.4, 8.4);
-      let localCenter = new THREE.Vector3(0, 0, 0);
+      const scaledSize = dim.size.clone().multiply(limbObj.scale);
+      const scaledCenter = dim.localCenter.clone().multiply(limbObj.scale);
 
-      if (activeLimbKey === 'head') {
-        size.set(8.4, 8.4, 8.4);
-        localCenter.set(0, 4, 0);
-      } else if (activeLimbKey === 'body') {
-        size.set(8.4, 12.4, 4.4);
-        localCenter.set(0, 6, 0);
-      } else if (activeLimbKey === 'rightArm' || activeLimbKey === 'leftArm') {
-        size.set(4.4, 12.4, 4.4);
-        localCenter.set(0, -4, 0);
-      } else if (activeLimbKey === 'rightLeg' || activeLimbKey === 'leftLeg') {
-        size.set(4.4, 12.4, 4.4);
-        localCenter.set(0, -6, 0);
-      } else {
-        size.set(16.5, 32.5, 8.5);
-        localCenter.set(0, 0, 0);
-      }
-
-      highlightWireframeBox.scale.copy(size);
+      highlightWireframeBox.scale.copy(scaledSize);
 
       const worldQuat = new THREE.Quaternion();
-      obj.getWorldQuaternion(worldQuat);
+      limbObj.getWorldQuaternion(worldQuat);
 
-      const worldCenter = localCenter.clone().applyQuaternion(worldQuat);
+      const worldCenter = scaledCenter.clone().applyQuaternion(worldQuat);
       const worldPos = new THREE.Vector3();
-      obj.getWorldPosition(worldPos);
+      limbObj.getWorldPosition(worldPos);
 
       highlightWireframeBox.position.copy(worldPos).add(worldCenter);
       highlightWireframeBox.quaternion.copy(worldQuat);
@@ -1500,6 +1773,9 @@
       rebuildGizmoMeshes();
     }
 
+    /* =========================================================
+       TRS (TRANSLATE, ROTATE, SCALE) 3D GIZMO BUILDER
+       ========================================================= */
     function rebuildGizmoMeshes() {
       if (!gizmoRoot) return;
       while (gizmoRoot.children.length > 0) {
@@ -1507,14 +1783,14 @@
       }
       gizmoInteractiveHandles = [];
 
-      const centerSphereGeom = new THREE.SphereGeometry(0.3, 12, 12);
-      const centerSphereMat = new THREE.MeshBasicMaterial({ color: 0xffffff, depthTest: false });
-      const centerPivot = new THREE.Mesh(centerSphereGeom, centerSphereMat);
-      centerPivot.renderOrder = 9999;
-      centerPivot.raycast = () => {};
-      gizmoRoot.add(centerPivot);
-
       if (currentMode === 'rotate' && activeSelectionType !== 'light') {
+        const centerSphereGeom = new THREE.SphereGeometry(0.3, 12, 12);
+        const centerSphereMat = new THREE.MeshBasicMaterial({ color: 0xffffff, depthTest: false });
+        const centerPivot = new THREE.Mesh(centerSphereGeom, centerSphereMat);
+        centerPivot.renderOrder = 9999;
+        centerPivot.raycast = () => {};
+        gizmoRoot.add(centerPivot);
+
         const radius = 4.4;
         const tube = 0.05;
 
@@ -1526,7 +1802,29 @@
         const ringZ = createRotationRing(radius, tube, 0x3b82f6, 'z', [0, 0, 0], blueAngles);
 
         gizmoRoot.add(ringX, ringY, ringZ);
+      } else if (currentMode === 'scale' && activeSelectionType !== 'light') {
+        const centerBoxGeom = new THREE.BoxGeometry(0.7, 0.7, 0.7);
+        const centerBoxMat = new THREE.MeshBasicMaterial({ color: 0xffffff, depthTest: false });
+        const centerCube = new THREE.Mesh(centerBoxGeom, centerBoxMat);
+        centerCube.renderOrder = 9999;
+        centerCube.userData = { axis: 'xyz', mode: 'scale' };
+        gizmoRoot.add(centerCube);
+        gizmoInteractiveHandles.push(centerCube);
+
+        const length = 5.2;
+        const scaleX = createScaleArrow(length, 0xef4444, 'x', [0, 0, -Math.PI / 2]);
+        const scaleY = createScaleArrow(length, 0x10b981, 'y', [0, 0, 0]);
+        const scaleZ = createScaleArrow(length, 0x3b82f6, 'z', [Math.PI / 2, 0, 0]);
+
+        gizmoRoot.add(scaleX, scaleY, scaleZ);
       } else {
+        const centerSphereGeom = new THREE.SphereGeometry(0.3, 12, 12);
+        const centerSphereMat = new THREE.MeshBasicMaterial({ color: 0xffffff, depthTest: false });
+        const centerPivot = new THREE.Mesh(centerSphereGeom, centerSphereMat);
+        centerPivot.renderOrder = 9999;
+        centerPivot.raycast = () => {};
+        gizmoRoot.add(centerPivot);
+
         const length = 5.2;
         const arrowX = createMoveArrow(length, 0xef4444, 'x', [0, 0, -Math.PI / 2]);
         const arrowY = createMoveArrow(length, 0x10b981, 'y', [0, 0, 0]);
@@ -1541,14 +1839,21 @@
 
     function createRotationRing(radius, tube, hex, axis, rot, angles) {
       const group = new THREE.Group();
-      const geom = new THREE.TorusGeometry(radius, tube, 6, 48);
-      const mat = new THREE.MeshBasicMaterial({ color: hex, depthTest: false, transparent: true, opacity: 0.5 });
+      const geom = new THREE.TorusGeometry(radius, tube, 8, 64);
+      const mat = new THREE.MeshBasicMaterial({ color: hex, depthTest: false, transparent: true, opacity: 0.6 });
       const ringLine = new THREE.Mesh(geom, mat);
       ringLine.renderOrder = 9998;
       ringLine.raycast = () => {};
       group.add(ringLine);
 
-      const sphGeom = new THREE.SphereGeometry(0.5, 12, 12);
+      const hitGeom = new THREE.TorusGeometry(radius, 0.45, 8, 36);
+      const hitMat = new THREE.MeshBasicMaterial({ visible: false });
+      const hitMesh = new THREE.Mesh(hitGeom, hitMat);
+      hitMesh.userData = { axis: axis, mode: 'rotate' };
+      group.add(hitMesh);
+      gizmoInteractiveHandles.push(hitMesh);
+
+      const sphGeom = new THREE.SphereGeometry(0.45, 12, 12);
       const sphMat = new THREE.MeshBasicMaterial({ color: hex, depthTest: false });
 
       angles.forEach(ang => {
@@ -1566,13 +1871,13 @@
 
     function createMoveArrow(length, hex, axis, rot) {
       const group = new THREE.Group();
-      const shaftGeom = new THREE.CylinderGeometry(0.1, 0.1, length, 8);
+      const shaftGeom = new THREE.CylinderGeometry(0.12, 0.12, length, 8);
       const mat = new THREE.MeshBasicMaterial({ color: hex, depthTest: false });
       const shaft = new THREE.Mesh(shaftGeom, mat);
       shaft.position.y = length / 2;
       shaft.renderOrder = 9999;
 
-      const coneGeom = new THREE.ConeGeometry(0.4, 1.2, 12);
+      const coneGeom = new THREE.ConeGeometry(0.45, 1.2, 12);
       const cone = new THREE.Mesh(coneGeom, mat);
       cone.position.y = length;
       cone.renderOrder = 9999;
@@ -1587,6 +1892,29 @@
       return group;
     }
 
+    function createScaleArrow(length, hex, axis, rot) {
+      const group = new THREE.Group();
+      const shaftGeom = new THREE.CylinderGeometry(0.12, 0.12, length, 8);
+      const mat = new THREE.MeshBasicMaterial({ color: hex, depthTest: false });
+      const shaft = new THREE.Mesh(shaftGeom, mat);
+      shaft.position.y = length / 2;
+      shaft.renderOrder = 9999;
+
+      const cubeGeom = new THREE.BoxGeometry(0.65, 0.65, 0.65);
+      const cube = new THREE.Mesh(cubeGeom, mat);
+      cube.position.y = length;
+      cube.renderOrder = 9999;
+
+      group.add(shaft, cube);
+      group.rotation.set(rot[0], rot[1], rot[2]);
+
+      const data = { axis: axis, mode: 'scale' };
+      shaft.userData = data;
+      cube.userData = data;
+      gizmoInteractiveHandles.push(shaft, cube);
+      return group;
+    }
+
     function getActiveTransformObject() {
       if (activeSelectionType === 'light') {
         const light = sceneLights.find(l => l.id === activeLightId);
@@ -1597,6 +1925,11 @@
         return item ? item.group : null;
       }
       if (!poseViewer || !poseViewer.playerObject || !poseViewer.playerObject.skin) return null;
+      
+      if (activeLimbKey === 'body' && torsoLockEnabled && currentMode === 'translate') {
+        return poseViewer.playerObject;
+      }
+
       if (activeLimbKey === 'root') return poseViewer.playerObject;
       return poseViewer.playerObject.skin[activeLimbKey] || null;
     }
@@ -1611,8 +1944,18 @@
       gizmoRoot.visible = true;
 
       const worldPos = new THREE.Vector3();
-      obj.getWorldPosition(worldPos);
+      if (activeLimbKey === 'body' && torsoLockEnabled && currentMode === 'translate' && poseViewer.playerObject.skin.body) {
+        poseViewer.playerObject.skin.body.getWorldPosition(worldPos);
+      } else {
+        obj.getWorldPosition(worldPos);
+      }
       gizmoRoot.position.copy(worldPos);
+
+      if (poseViewer && poseViewer.camera) {
+        const dist = poseViewer.camera.position.distanceTo(worldPos);
+        const scale = Math.max(0.1, dist / 48);
+        gizmoRoot.scale.set(scale, scale, scale);
+      }
 
       if (currentSpace === 'local' && (activeSelectionType === 'limb' || activeSelectionType === 'item')) {
         const worldQuat = new THREE.Quaternion();
@@ -1633,6 +1976,8 @@
       let startPivotWorld = new THREE.Vector3();
       let startLimbPos = new THREE.Vector3();
       let startLimbQuat = new THREE.Quaternion();
+      let startLimbScale = new THREE.Vector3();
+      let startItemScale = 1.0;
       let activeConstraintPlane = new THREE.Plane();
       let axisWorldDir = new THREE.Vector3();
       let startRotVec = new THREE.Vector3();
@@ -1662,16 +2007,28 @@
             const obj = getActiveTransformObject();
             startLimbPos.copy(obj.position);
             startLimbQuat.copy(obj.quaternion);
+            startLimbScale.copy(obj.scale);
 
-            obj.getWorldPosition(startPivotWorld);
-            axisWorldDir.copy(getGizmoAxisDirection(dragAxis));
+            if (activeSelectionType === 'item') {
+              const item = sceneItems.find(it => it.id === activeItemId);
+              if (item) startItemScale = item.scale;
+            }
 
-            if (currentMode === 'translate') {
+            if (activeLimbKey === 'body' && torsoLockEnabled && currentMode === 'translate' && poseViewer.playerObject.skin.body) {
+              poseViewer.playerObject.skin.body.getWorldPosition(startPivotWorld);
+            } else {
+              obj.getWorldPosition(startPivotWorld);
+            }
+            axisWorldDir.copy(getGizmoAxisDirection(dragAxis === 'xyz' ? 'y' : dragAxis));
+
+            if (currentMode === 'translate' || currentMode === 'scale') {
               const camToPivot = poseViewer.camera.position.clone().sub(startPivotWorld);
               let planeNorm = new THREE.Vector3().crossVectors(axisWorldDir, camToPivot).cross(axisWorldDir).normalize();
               if (planeNorm.lengthSq() < 0.001) planeNorm.copy(poseViewer.camera.getWorldDirection(new THREE.Vector3()).negate());
               activeConstraintPlane.setFromNormalAndCoplanarPoint(planeNorm, startPivotWorld);
-              raycaster.ray.intersectPlane(activeConstraintPlane, startHitWorld);
+              if (!raycaster.ray.intersectPlane(activeConstraintPlane, startHitWorld)) {
+                startHitWorld.copy(startPivotWorld);
+              }
             } else {
               activeConstraintPlane.setFromNormalAndCoplanarPoint(axisWorldDir, startPivotWorld);
               const hit = new THREE.Vector3();
@@ -1679,6 +2036,7 @@
                 startHitWorld.copy(hit);
                 startRotVec.copy(startHitWorld).sub(startPivotWorld).normalize();
               } else {
+                startHitWorld.copy(startPivotWorld);
                 startRotVec.set(0, 1, 0);
               }
             }
@@ -1713,23 +2071,36 @@
           }
 
           const playerMeshes = [];
-          poseViewer.playerObject.traverse(c => {
-            if (c.isMesh && c.visible && !c.userData.isItemWrapper) playerMeshes.push(c);
-          });
+          if (poseViewer && poseViewer.playerObject && poseViewer.playerObject.skin) {
+            poseViewer.playerObject.skin.traverse(c => {
+              if (c.isMesh && c.visible) {
+                let isChildOfItem = false;
+                let p = c;
+                while (p) {
+                  if (p.userData && p.userData.isItemWrapper) { isChildOfItem = true; break; }
+                  p = p.parent;
+                }
+                if (!isChildOfItem) playerMeshes.push(c);
+              }
+            });
+          }
 
           const playerHits = raycaster.intersectObjects(playerMeshes, false);
           if (playerHits.length > 0) {
-            const hitMesh = playerHits[0].object;
-            const skin = poseViewer.playerObject.skin;
             const limbKeys = ['head', 'body', 'rightArm', 'leftArm', 'rightLeg', 'leftLeg'];
-
-            for (const key of limbKeys) {
-              let found = false;
-              skin[key].traverse(c => { if (c === hitMesh) found = true; });
-              if (found) {
+            for (const hit of playerHits) {
+              const hitMesh = hit.object;
+              const skin = poseViewer.playerObject.skin;
+              let foundKey = null;
+              for (const key of limbKeys) {
+                if (!skin[key]) continue;
+                skin[key].traverse(c => { if (c === hitMesh) foundKey = key; });
+                if (foundKey) break;
+              }
+              if (foundKey) {
                 switchTab('rig');
-                selectLimb(key);
-                showToast(`Selected: ${limbDisplayNames[key]}`);
+                selectLimb(foundKey);
+                showToast(`Selected: ${limbDisplayNames[foundKey]}`);
                 return;
               }
             }
@@ -1770,13 +2141,12 @@
             const worldDelta = currentHitWorld.sub(startHitWorld);
             const distance = worldDelta.dot(axisWorldDir);
 
-            if (currentSpace === 'local' && obj.parent) {
+            let localDelta = axisWorldDir.clone().multiplyScalar(distance);
+            if (obj.parent) {
               const parentQuatInv = obj.parent.getWorldQuaternion(new THREE.Quaternion()).invert();
-              const localDisplacement = axisWorldDir.clone().multiplyScalar(distance).applyQuaternion(parentQuatInv);
-              obj.position.copy(startLimbPos).add(localDisplacement);
-            } else {
-              obj.position.copy(startLimbPos).add(axisWorldDir.clone().multiplyScalar(distance));
+              localDelta.applyQuaternion(parentQuatInv);
             }
+            obj.position.copy(startLimbPos).add(localDelta);
 
             if (activeSelectionType === 'light') {
               const light = sceneLights.find(l => l.id === activeLightId);
@@ -1784,6 +2154,36 @@
             }
 
             document.getElementById('hudValueText').textContent = (distance >= 0 ? '+' : '') + distance.toFixed(3);
+          }
+        } else if (currentMode === 'scale') {
+          const currentHitWorld = new THREE.Vector3();
+          if (raycaster.ray.intersectPlane(activeConstraintPlane, currentHitWorld)) {
+            const worldDelta = currentHitWorld.sub(startHitWorld);
+            const distance = worldDelta.dot(axisWorldDir);
+            const scaleMultiplier = Math.max(0.05, 1 + distance * 0.15);
+
+            if (activeSelectionType === 'item') {
+              const item = sceneItems.find(it => it.id === activeItemId);
+              if (item) {
+                const finalScale = Math.max(0.05, Math.min(10, startItemScale * scaleMultiplier));
+                item.scale = finalScale;
+                item.group.scale.set(finalScale, finalScale, finalScale);
+                document.getElementById('itemScaleSlider').value = finalScale;
+                document.getElementById('itemScaleValue').textContent = finalScale.toFixed(2);
+                document.getElementById('hudValueText').textContent = finalScale.toFixed(2) + 'x';
+              }
+            } else {
+              if (dragAxis === 'xyz') {
+                obj.scale.copy(startLimbScale).multiplyScalar(scaleMultiplier);
+              } else if (dragAxis === 'x') {
+                obj.scale.x = Math.max(0.05, startLimbScale.x * scaleMultiplier);
+              } else if (dragAxis === 'y') {
+                obj.scale.y = Math.max(0.05, startLimbScale.y * scaleMultiplier);
+              } else if (dragAxis === 'z') {
+                obj.scale.z = Math.max(0.05, startLimbScale.z * scaleMultiplier);
+              }
+              document.getElementById('hudValueText').textContent = scaleMultiplier.toFixed(2) + 'x';
+            }
           }
         } else {
           const currentHitWorld = new THREE.Vector3();
@@ -1818,12 +2218,16 @@
         updateHighlightBox();
       });
 
-      window.addEventListener('mouseup', () => {
-        isRightDraggingCamera = false;
-        if (isDraggingGizmo) {
-          isDraggingGizmo = false;
-          dragAxis = null;
-          recordHistory();
+      window.addEventListener('mouseup', (e) => {
+        if (e.button === 2) {
+          isRightDraggingCamera = false;
+        }
+        if (e.button === 0) {
+          if (isDraggingGizmo) {
+            isDraggingGizmo = false;
+            dragAxis = null;
+            recordHistory();
+          }
         }
       });
 
@@ -1865,11 +2269,28 @@
     }
 
     function toggleMode() {
-      currentMode = currentMode === 'rotate' ? 'translate' : 'rotate';
-      const isRot = currentMode === 'rotate';
-      document.getElementById('hudModeText').textContent = isRot ? 'Rotation' : 'Position';
+      if (activeSelectionType === 'light') {
+        currentMode = 'translate';
+        document.getElementById('hudModeText').textContent = 'Position';
+        showToast('Lights only support position');
+        return;
+      }
+      
+      if (currentMode === 'rotate') {
+        currentMode = 'translate';
+      } else if (currentMode === 'translate') {
+        currentMode = 'scale';
+      } else {
+        currentMode = 'rotate';
+      }
+
+      let label = 'Rotation';
+      if (currentMode === 'translate') label = 'Position';
+      if (currentMode === 'scale') label = 'Scale';
+
+      document.getElementById('hudModeText').textContent = label;
       rebuildGizmoMeshes();
-      showToast(`Mode: ${isRot ? 'Rotation' : 'Position'}`);
+      showToast(`Mode: ${label}`);
     }
 
     function toggleSpace() {
@@ -1910,6 +2331,7 @@
       const obj = getActiveTransformObject();
       if (!obj || activeSelectionType !== 'limb') return;
       obj.rotation.set(0, 0, 0);
+      obj.scale.set(1, 1, 1);
       if (activeLimbKey !== 'root') {
         obj.position.copy(limbOffsets[activeLimbKey].basePos);
       }
@@ -1924,6 +2346,7 @@
         const obj = getLimbObject(k);
         if (obj) {
           obj.rotation.set(0, 0, 0);
+          obj.scale.set(1, 1, 1);
           obj.position.copy(limbOffsets[k].basePos);
         }
       });
@@ -1942,6 +2365,7 @@
         const obj = getLimbObject(k);
         if (obj) {
           obj.rotation.set(0, 0, 0);
+          obj.scale.set(1, 1, 1);
           obj.position.copy(limbOffsets[k].basePos);
         }
       });
@@ -1965,11 +2389,13 @@
       updateSelectedLightProperties();
     };
     document.getElementById('lightColorHex').onchange = (e) => {
-      let val = e.target.value;
+      let val = e.target.value.trim();
       if (!val.startsWith('#')) val = '#' + val;
       if (/^#[0-9A-F]{6}$/i.test(val)) {
         document.getElementById('lightColorPicker').value = val;
         updateSelectedLightProperties();
+      } else {
+        document.getElementById('lightColorHex').value = document.getElementById('lightColorPicker').value.toUpperCase();
       }
     };
     document.getElementById('lightIntensitySlider').oninput = updateSelectedLightProperties;
@@ -1977,7 +2403,7 @@
     document.getElementById('deleteLightBtn').onclick = deleteActiveLight;
     document.getElementById('moveLightToCamBtn').onclick = moveActiveLightToCamera;
 
-    /* Clean Snapshot Capture: Ground grid and gizmos automatically hidden */
+    /* Snapshot Capture */
     document.getElementById('takePictureBtn').onclick = () => {
       if (!poseViewer) return;
       const cp = poseViewer.camera.position;
@@ -2024,9 +2450,13 @@
       const reader = new FileReader();
       reader.onload = async (ev) => {
         const data = ev.target.result;
-        await loadSkinSafely(data);
-        try { localStorage.setItem('minecraft_active_skin', data); } catch(e) {}
-        showToast('Skin loaded');
+        const ok = await loadSkinSafely(data);
+        if (ok) {
+          try { localStorage.setItem('minecraft_active_skin', data); } catch(e) {}
+          showToast('Skin loaded');
+        } else {
+          showToast('Failed to load skin image');
+        }
       };
       reader.readAsDataURL(file);
     };
@@ -2036,6 +2466,8 @@
         const container = document.getElementById('viewportContainer');
         poseViewer.setSize(container.clientWidth, container.clientHeight);
         updateCameraFromSpherical();
+        updateGizmoWorldPosition();
+        updateHighlightBox();
       }
     });
 
