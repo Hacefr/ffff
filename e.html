@@ -939,7 +939,6 @@
       const maxDim = Math.max(size.x, size.y, size.z) || 1;
       const factor = targetBoundingSize / maxDim;
 
-      // Center model around its local pivot
       const center = new THREE.Vector3();
       box.getCenter(center);
       threeObject.position.sub(center);
@@ -967,7 +966,6 @@
             if (m.roughness !== undefined) m.roughness = 0.65;
             if (m.metalness !== undefined) m.metalness = 0.05;
 
-            // Prevent invisible unlit black models if no diffuse color is set
             if (m.color && m.color.r === 0 && m.color.g === 0 && m.color.b === 0 && !m.map) {
               m.color.setHex(0xdddddd);
             }
@@ -1146,7 +1144,7 @@
     }
 
     /* =========================================================
-       MULTI-FORMAT LOADER PIPELINE
+       MULTI-FORMAT LOADER PIPELINE & RECURSIVE ZIP SYSTEM
        ========================================================= */
     async function handleFileListImport(files) {
       if (!files || files.length === 0) return;
@@ -1167,7 +1165,6 @@
       });
 
       if (!mainModelFile) {
-        // If only textures are provided and an item is selected, apply them
         const imgFiles = fileList.filter(f => /\.(png|jpe?g|webp)$/i.test(f.name));
         if (imgFiles.length > 0 && sceneItems.length > 0) {
           const item = sceneItems.find(it => it.id === activeItemId);
@@ -1269,7 +1266,6 @@
           const materialsCreator = mtlLoader.parse(mtlText);
           materialsCreator.preload();
 
-          // Map texture files to materials
           Object.keys(loadedTextures).forEach(texName => {
             Object.values(materialsCreator.materials).forEach(mat => {
               mat.map = loadedTextures[texName];
@@ -1351,60 +1347,105 @@
       showToast(`Loaded VOX: ${baseName}`);
     }
 
+    /* Recursive extractor: Recursively parses nested .zip files and collects all entries and images */
+    async function extractAllZipEntries(zipSource, pathPrefix = '') {
+      const zip = await JSZip.loadAsync(zipSource);
+      const rawEntries = Object.entries(zip.files).filter(([name, entry]) => !entry.dir && !name.includes('__MACOSX'));
+      let results = [];
+
+      for (const [name, entry] of rawEntries) {
+        const fullPath = pathPrefix ? `${pathPrefix}/${name}` : name;
+        const cleanName = name.split('/').pop();
+
+        if (cleanName.toLowerCase().endsWith('.zip')) {
+          try {
+            const subBuffer = await entry.async('arraybuffer');
+            const subResults = await extractAllZipEntries(subBuffer, fullPath);
+            results = results.concat(subResults);
+          } catch (err) {
+            console.warn(`Could not read sub-zip "${cleanName}":`, err);
+          }
+        } else {
+          results.push({
+            path: fullPath,
+            name: cleanName,
+            entry: entry
+          });
+        }
+      }
+      return results;
+    }
+
     async function processZipFile(file, baseName) {
-      showToast('Extracting ZIP archive...');
-      const zip = await JSZip.loadAsync(file);
-      const entries = Object.entries(zip.files).filter(([name, entry]) => !entry.dir && !name.includes('__MACOSX'));
+      showToast('Extracting ZIP archive (including sub-zips)...');
+      let entries = [];
+      try {
+        entries = await extractAllZipEntries(file);
+      } catch (err) {
+        showToast('Failed to read ZIP archive: ' + err.message);
+        return;
+      }
 
       if (entries.length === 0) {
         showToast('ZIP archive is empty');
         return;
       }
 
-      // Map texture images inside the ZIP
+      // Map texture images inside the main ZIP and all nested sub-ZIPs
       const loadedTextures = {};
       const urlMap = {};
 
-      for (const [path, entry] of entries) {
-        const cleanName = path.split('/').pop();
+      for (const item of entries) {
+        const cleanName = item.name;
         if (/\.(png|jpe?g|webp)$/i.test(cleanName)) {
-          const blob = await entry.async('blob');
-          const blobUrl = URL.createObjectURL(blob);
-          urlMap[cleanName] = blobUrl;
-          urlMap[path] = blobUrl;
-          const tex = await new Promise(res => new THREE.TextureLoader().load(blobUrl, res));
-          loadedTextures[cleanName] = tex;
+          try {
+            const blob = await item.entry.async('blob');
+            const blobUrl = URL.createObjectURL(blob);
+            urlMap[cleanName] = blobUrl;
+            urlMap[item.path] = blobUrl;
+            const tex = await new Promise(res => new THREE.TextureLoader().load(blobUrl, res));
+
+            let texKey = cleanName;
+            if (loadedTextures[texKey]) {
+              const folderHint = item.path.split('/').slice(-2, -1)[0] || 'sub';
+              texKey = `${cleanName} (${folderHint})`;
+            }
+            loadedTextures[texKey] = tex;
+          } catch (e) {
+            console.warn('Failed loading image inside ZIP:', item.path, e);
+          }
         }
       }
 
       // 1. Check for GLB
-      const glbEntry = entries.find(([p]) => p.toLowerCase().endsWith('.glb'));
-      if (glbEntry) {
-        const glbBuffer = await glbEntry[1].async('arraybuffer');
+      const glbItem = entries.find(item => item.name.toLowerCase().endsWith('.glb'));
+      if (glbItem) {
+        const glbBuffer = await glbItem.entry.async('arraybuffer');
         new THREE.GLTFLoader().parse(glbBuffer, '', (gltf) => {
           registerItemObject(baseName, gltf.scene || gltf.scenes[0], 'rightArm', loadedTextures);
-          showToast(`Extracted & Loaded "${glbEntry[0].split('/').pop()}" from ZIP`);
+          showToast(`Extracted & Loaded "${glbItem.name}" from ZIP`);
         }, (err) => showToast('Error parsing GLB from ZIP'));
         return;
       }
 
       // 2. Check for GLTF
-      const gltfEntry = entries.find(([p]) => p.toLowerCase().endsWith('.gltf'));
-      if (gltfEntry) {
+      const gltfItem = entries.find(item => item.name.toLowerCase().endsWith('.gltf'));
+      if (gltfItem) {
         const manager = new THREE.LoadingManager();
-        for (const [path, entry] of entries) {
-          if (path.toLowerCase().endsWith('.bin')) {
-            const blob = await entry.async('blob');
+        for (const item of entries) {
+          if (item.name.toLowerCase().endsWith('.bin')) {
+            const blob = await item.entry.async('blob');
             const url = URL.createObjectURL(blob);
-            urlMap[path.split('/').pop()] = url;
+            urlMap[item.name] = url;
+            urlMap[item.path] = url;
           }
         }
         manager.setURLModifier((url) => {
           const clean = url.split('/').pop();
-          return urlMap[clean] || url;
+          return urlMap[clean] || urlMap[url] || url;
         });
 
-        const gltfText = await gltfEntry[1].async('string');
+        const gltfText = await gltfItem.entry.async('string');
         new THREE.GLTFLoader(manager).parse(gltfText, '', (gltf) => {
           registerItemObject(baseName, gltf.scene || gltf.scenes[0], 'rightArm', loadedTextures);
           showToast(`Extracted & Loaded GLTF from ZIP`);
@@ -1413,15 +1454,15 @@
       }
 
       // 3. Check for OBJ
-      const objEntry = entries.find(([p]) => p.toLowerCase().endsWith('.obj'));
-      if (objEntry) {
-        const objText = await objEntry[1].async('string');
+      const objItem = entries.find(item => item.name.toLowerCase().endsWith('.obj'));
+      if (objItem) {
+        const objText = await objItem.entry.async('string');
         const objLoader = new THREE.OBJLoader();
 
-        const mtlEntry = entries.find(([p]) => p.toLowerCase().endsWith('.mtl'));
-        if (mtlEntry) {
+        const mtlItem = entries.find(item => item.name.toLowerCase().endsWith('.mtl'));
+        if (mtlItem) {
           try {
-            const mtlText = await mtlEntry[1].async('string');
+            const mtlText = await mtlItem.entry.async('string');
             const mtlLoader = new THREE.MTLLoader();
             const materialsCreator = mtlLoader.parse(mtlText);
             materialsCreator.preload();
@@ -1450,18 +1491,18 @@
       }
 
       // 4. Check for FBX, STL, PLY, DAE, VOX
-      const fbxEntry = entries.find(([p]) => p.toLowerCase().endsWith('.fbx'));
-      if (fbxEntry) {
-        const buf = await fbxEntry[1].async('arraybuffer');
+      const fbxItem = entries.find(item => item.name.toLowerCase().endsWith('.fbx'));
+      if (fbxItem) {
+        const buf = await fbxItem.entry.async('arraybuffer');
         const group = new THREE.FBXLoader().parse(buf, '');
         registerItemObject(baseName, group, 'rightArm', loadedTextures);
         showToast('Extracted FBX from ZIP');
         return;
       }
 
-      const stlEntry = entries.find(([p]) => p.toLowerCase().endsWith('.stl'));
-      if (stlEntry) {
-        const buf = await stlEntry[1].async('arraybuffer');
+      const stlItem = entries.find(item => item.name.toLowerCase().endsWith('.stl'));
+      if (stlItem) {
+        const buf = await stlItem.entry.async('arraybuffer');
         const geom = new THREE.STLLoader().parse(buf);
         geom.computeVertexNormals();
         const mat = new THREE.MeshStandardMaterial({ color: 0x93c5fd, roughness: 0.5, metalness: 0.1, side: THREE.DoubleSide });
@@ -1471,20 +1512,60 @@
         return;
       }
 
-      const voxEntry = entries.find(([p]) => p.toLowerCase().endsWith('.vox'));
-      if (voxEntry) {
-        const buf = await voxEntry[1].async('arraybuffer');
+      const plyItem = entries.find(item => item.name.toLowerCase().endsWith('.ply'));
+      if (plyItem) {
+        const buf = await plyItem.entry.async('arraybuffer');
+        const geom = new THREE.PLYLoader().parse(buf);
+        geom.computeVertexNormals();
+        const hasColors = geom.hasAttribute && geom.hasAttribute('color');
+        const mat = new THREE.MeshStandardMaterial({
+          color: hasColors ? 0xffffff : 0xa78bfa,
+          vertexColors: hasColors,
+          roughness: 0.5,
+          metalness: 0.1,
+          side: THREE.DoubleSide
+        });
+        const mesh = new THREE.Mesh(geom, mat);
+        registerItemObject(baseName, mesh, 'rightArm', loadedTextures);
+        showToast('Extracted PLY from ZIP');
+        return;
+      }
+
+      const daeItem = entries.find(item => item.name.toLowerCase().endsWith('.dae'));
+      if (daeItem) {
+        const text = await daeItem.entry.async('string');
+        const collada = new THREE.ColladaLoader().parse(text);
+        registerItemObject(baseName, collada.scene, 'rightArm', loadedTextures);
+        showToast('Extracted DAE from ZIP');
+        return;
+      }
+
+      const voxItem = entries.find(item => item.name.toLowerCase().endsWith('.vox'));
+      if (voxItem) {
+        const buf = await voxItem.entry.async('arraybuffer');
         const chunks = new THREE.VOXLoader().parse(buf);
         const group = new THREE.Group();
         for (let i = 0; i < chunks.length; i++) {
           group.add(new THREE.VOXMesh(chunks[i]));
         }
-        registerItemObject(baseName, group, 'rightArm');
+        registerItemObject(baseName, group, 'rightArm', loadedTextures);
         showToast('Extracted VOX from ZIP');
         return;
       }
 
-      showToast('No recognized 3D model found inside the ZIP');
+      // If only textures/images were found and an item is currently active, apply them
+      if (Object.keys(loadedTextures).length > 0 && sceneItems.length > 0) {
+        const item = sceneItems.find(it => it.id === activeItemId);
+        if (item) {
+          Object.assign(item.textures, loadedTextures);
+          updateTextureDropdown(item);
+          applyTextureToObject(item, loadedTextures[Object.keys(loadedTextures)[0]]);
+          showToast(`Extracted and applied ${Object.keys(loadedTextures).length} texture(s) to ${item.name}`);
+          return;
+        }
+      }
+
+      showToast('No recognized 3D model found inside the ZIP or its sub-archives');
     }
 
     document.getElementById('uploadUniversalBtn').onclick = () => document.getElementById('itemUniversalInput').click();
@@ -1571,7 +1652,6 @@
       const droppedFiles = e.dataTransfer.files;
       if (!droppedFiles || droppedFiles.length === 0) return;
 
-      // Check if dropped file is a single 64x64 or 64x32 skin image
       if (droppedFiles.length === 1 && /\.(png)$/i.test(droppedFiles[0].name)) {
         const reader = new FileReader();
         reader.onload = (ev) => {
